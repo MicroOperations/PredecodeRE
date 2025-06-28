@@ -95,8 +95,8 @@ void do_analysis(struct predecode_re *rawr)
     /* setup da bitch */
     ia32_perfevtsel_t evt = {0};
     evt.fields.os = true;
-    evt.fields.umask = PRED_WRONG_UMASK;
-    evt.fields.evtsel = PRED_WRONG_EVTSEL;
+    evt.fields.umask = UNHALTED_CORE_CYCLES_UMASK; //PRED_WRONG_UMASK;
+    evt.fields.evtsel = UNHALTED_REF_CYCLES_EVTSEL; //PRED_WRONG_EVTSEL;
     evt.fields.enable_pmc = true;
     __wrmsrl(IA32_PERFEVTSEL0, evt.val);
 
@@ -158,6 +158,8 @@ void do_analysis(struct predecode_re *rawr)
             "orq %%rdi, %%rsi;"
             "orq %%rdx, %%rax;"
             "subq %%rsi, %%rax;"
+
+            "wbinvd;"
 
             : "=a"(count)
             :
