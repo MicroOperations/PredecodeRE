@@ -158,9 +158,6 @@ void do_analysis(struct predecode_re *rawr)
             "orq %%rdi, %%rsi;"
             "orq %%rdx, %%rax;"
             "subq %%rsi, %%rax;"
-
-            "wbinvd;"
-
             : "=a"(count)
             :
             : "%rcx", "%r8", "%rdx", "%rdi");
