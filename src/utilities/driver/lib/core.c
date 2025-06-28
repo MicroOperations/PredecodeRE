@@ -1,5 +1,31 @@
 #include "include/core.h"
 
+/* 
+mov r8, cr3
+xor ecx, ecx
+mov cr3, r8
+rdpmc
+mov esi, eax
+mov edi, edx
+xor eax, eax
+add ax, 4
+shr ax, 1
+sub ax, 2
+movzx ecx, ax
+rdpmc
+mov cr3, r8
+shl rdi, 32
+shl rdx, 32
+or rsi, rdi
+or rax, rdx
+*/
+u8 benchmark_routine[] = 
+{ 0x41, 0x0F, 0x20, 0xD8, 0x31, 0xC9, 0x41, 0x0F, 0x22, 0xD8, 0x0F, 0x33, 
+  0x89, 0xC6, 0x89, 0xD7, 0x31, 0xC0, 0x66, 0x83, 0xC0, 0x04, 0x66, 0xD1, 
+  0xE8, 0x66, 0x83, 0xE8, 0x02, 0x0F, 0xB7, 0xC8, 0x0F, 0x33, 0x41, 0x0F, 
+  0x22, 0xD8, 0x48, 0xC1, 0xE7, 0x20, 0x48, 0xC1, 0xE2, 0x20, 0x48, 0x09, 
+  0xFE, 0x48, 0x09, 0xD0 };
+
 void do_analysis(struct predecode_re *rawr)
 {
     if (!rawr)
@@ -31,6 +57,7 @@ void do_analysis(struct predecode_re *rawr)
 
     u64 totals[128] = {0};
     u64 first_iter = 0;
+    u64 second_iter = 0;
     /* first determine average cycle count */
     for (u32 i = 0; i < ARRAY_SIZE(totals); i++) {
 
@@ -45,9 +72,9 @@ void do_analysis(struct predecode_re *rawr)
 
             /* count pmc0 */
             "xorl %%ecx, %%ecx;"
-
-            //"wbinvd;"
             
+            ".align 64;"
+
             /* 'serialise' just this code block */
             "movq %%r8, %%cr3;"
             "rdpmc;"
@@ -80,13 +107,18 @@ void do_analysis(struct predecode_re *rawr)
 
             "orq %%rdi, %%rsi;"
             "orq %%rdx, %%rax;"
+
+            "wbinvd;"
             : "=S"(count1), "=a"(count2)
             :
             : "%rcx", "%r8", "%rdx", "%rdi");
 
         totals[i] = count2 - count1;
+
         if (i == 0) 
             first_iter = totals[i];
+        else if (i == 1)
+            second_iter = totals[i];
 
         zero_enabled_pmc(pmc0_msr, 0);
     }
@@ -110,8 +142,11 @@ void do_analysis(struct predecode_re *rawr)
     avg2 /= ARRAY_SIZE(totals)/2;
     total_avg /= ARRAY_SIZE(totals);
     
-    meow(KERN_DEBUG, "first: %llu: avg1: %llu avg2: %llu total avg: %llu", 
-         first_iter, avg1, avg2, total_avg);
+    meow(KERN_DEBUG, "basic timing analysis");
+    meow(KERN_DEBUG, "first iter: %llu: second iter: %llu", 
+         first_iter, second_iter);
+    meow(KERN_DEBUG, "avg1: %llu avg2: %llu total avg: %llu",
+         avg1, avg2, total_avg);
 
     /* disable and zero the pmc */
     disable_pmc(0);

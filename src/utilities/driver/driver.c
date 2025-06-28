@@ -17,7 +17,7 @@ struct predecode_re rawr = {
     .params = {
         .cpu = &cpu,
     },
-
+    
     .analysis = {},
 
     .sysfs = {

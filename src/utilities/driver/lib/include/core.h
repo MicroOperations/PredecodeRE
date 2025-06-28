@@ -4,6 +4,8 @@
 #include "utils.h"
 #include "arch.h"
 
+typedef unsigned long (*kallsyms_ln_t)(const char *name);
+
 struct predecode_re 
 {
     struct 
@@ -25,6 +27,8 @@ struct predecode_re
 
     struct mutex lock;
 };
+
+extern u8 benchmark_routine[];
 
 void do_analysis(struct predecode_re *rawr);
 
