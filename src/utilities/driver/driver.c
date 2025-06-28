@@ -35,6 +35,7 @@ static int __init driver_entry(void)
 {
     meow(KERN_DEBUG, "driver loaded");
 
+    /* do the frickin analysis shit */
     if (*rawr.params.cpu < 0) {
         *rawr.params.cpu = smp_processor_id();
         do_analysis(&rawr);
@@ -56,6 +57,7 @@ static int __init driver_entry(void)
 
     meow(KERN_DEBUG, "analysis successful");
  
+    /* setup the sysfs driver */
     struct kobject *ref = kobject_create_and_add(SYSFS_DIR_NAME, kernel_kobj);
     if (!ref) {
         meow(KERN_ERR, "failed to create and add kobject");
@@ -68,6 +70,7 @@ static int __init driver_entry(void)
         return -EFAULT;
     }
 
+    /* driver setup */
     rawr.sysfs.kobj_ref = ref;
     rawr.sysfs.sysfs_setup = true;
    
@@ -77,6 +80,8 @@ static int __init driver_entry(void)
 
 static void __exit driver_exit(void)
 {
+    /* clean shit up usual biz */
+
     mutex_lock(&rawr.lock);
 
     if (rawr.sysfs.sysfs_setup)

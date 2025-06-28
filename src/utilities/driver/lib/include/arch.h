@@ -5,7 +5,9 @@
 #include <asm/paravirt.h>
 
 /* took me a couple of hours doing all dis shit 
-   from scratch ^~_~^ meow purrr */
+   from scratch
+   
+   scratch ^~_~^ meow purrr rawrrr */
 
 typedef union
 {
@@ -514,7 +516,6 @@ typedef ia32_pmc_gp_cfg_c_t ia32_pmc_fx_cfg_c_t;
 #define CPUID_MANUFACTURER_ID 0
 #define GENUINE_INTEL_EBX 0x756E6547
 #define GENUINE_INTEL_ECX 0x6C65746E
-#define GENUINE_IOTEL_ECX 0x6C65746F
 #define GENUINE_INTEL_EDX 0x49656E69
 
 #define CPUID_FEATURE_BITS 1
@@ -612,14 +613,13 @@ inline bool is_cpu_intel(void);
 inline bool is_arch_lbr_supported(void);
 inline bool is_arch_perfmon_ext_supported(void);
 inline bool is_invd_prevention_supported(void);
+inline bool is_cldemote_supported(void);
 
 inline void disable_perf_metrics(void);
 
-inline bool fw_a_pmc_supported(void);
-inline void perf_enable_pmc(u32 pmc_no);
-inline void perf_disable_pmc(u32 pmc_no);
-
-inline void perf_enable_fixed_func_pmc(u32 pmc_no);
-inline void perf_disable_fixed_func_pmc(u32 pmc_no);
+inline bool fw_a_pmc_supported(u32 pmc_no);
+inline void enable_pmc(u32 pmc_no);
+inline void disable_pmc(u32 pmc_no);
+inline void toggle_cd(bool on);
 
 #endif

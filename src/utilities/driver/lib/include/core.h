@@ -2,6 +2,7 @@
 #define _CORE_H_
 
 #include "utils.h"
+#include "arch.h"
 
 struct predecode_re 
 {

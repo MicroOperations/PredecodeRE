@@ -53,28 +53,35 @@ inline bool is_cpu_intel(void)
     __cpuid(&regs[0], &regs[1], &regs[2], &regs[3]);
     return regs[1] == GENUINE_INTEL_EBX && 
            regs[3] == GENUINE_INTEL_EDX &&
-           (regs[2] == GENUINE_INTEL_ECX || regs[2] == GENUINE_IOTEL_ECX);
+           regs[2] == GENUINE_INTEL_ECX;
 }
 
 inline bool is_arch_lbr_supported(void)
 {
     u32 regs[4] = {CPUID_EXTENDED_FEATURES, 0, 0, 0};
     __cpuid(&regs[0], &regs[1], &regs[2], &regs[3]);
-    return (regs[3] >> 19) & 1;
+    return ((regs[3] >> 19) & 1) != 0;
 }
 
 inline bool is_arch_perfmon_ext_supported(void)
 {
     u32 regs[4] = {CPUID_EXTENDED_FEATURES, 0, 1, 0};
     __cpuid(&regs[0], &regs[1], &regs[2], &regs[3]);
-    return (regs[0] >> 8) & 1;
+    return ((regs[0] >> 8) & 1) != 0;
 }
 
 inline bool is_invd_prevention_supported(void)
 {
     u32 regs[4] = {CPUID_EXTENDED_FEATURES, 0, 1, 0};
     __cpuid(&regs[0], &regs[1], &regs[2], &regs[3]);
-    return (regs[0] >> 30) & 1;
+    return ((regs[0] >> 30) & 1) != 0;
+}
+
+inline bool is_cldemote_supported(void)
+{
+    u32 regs[4] = {CPUID_EXTENDED_FEATURES, 0, 0, 0};
+    __cpuid(&regs[0], &regs[1], &regs[2], &regs[3]);
+    return ((regs[2] >> 25) & 1) != 0; 
 }
 
 inline void disable_perf_metrics(void)
@@ -84,48 +91,31 @@ inline void disable_perf_metrics(void)
     __wrmsrl(IA32_PERF_GLOBAL_CTRL, ctrl.val);
 }
 
-inline bool fw_a_pmc_supported(void)
+inline bool fw_a_pmc_supported(u32 pmc_no)
 {
     ia32_perf_capabilities_t caps = {.val = __rdmsrl(IA32_PERF_CAPABILITIES)};
-    return caps.fields.fw_ia32_a_pmcx != 0;
+    return ((caps.fields.fw_ia32_a_pmcx >> pmc_no) & 1) != 0;
 }
 
-inline void perf_enable_pmc(u32 pmc_no)
+inline void enable_pmc(u32 pmc_no)
 {
-    if (pmc_no > 30)
-        return;
-
     ia32_perf_global_ctrl_t ctrl = {.val = __rdmsrl(IA32_PERF_GLOBAL_CTRL)};
     ctrl.fields.enable_pmcn |= (1 << pmc_no);
     __wrmsrl(IA32_PERF_GLOBAL_CTRL, ctrl.val);
 }
 
-inline void perf_disable_pmc(u32 pmc_no)
+inline void disable_pmc(u32 pmc_no)
 {
-    if (pmc_no > 30)
-        return;
-
     ia32_perf_global_ctrl_t ctrl = {.val = __rdmsrl(IA32_PERF_GLOBAL_CTRL)};
     ctrl.fields.enable_pmcn &= ~(1 << pmc_no);
     __wrmsrl(IA32_PERF_GLOBAL_CTRL, ctrl.val);
 }
 
-inline void perf_enable_fixed_func_pmc(u32 pmc_no)
+inline void toggle_cd(bool on)
 {
-    if (pmc_no > 14)
-        return;
-
-    ia32_perf_global_ctrl_t ctrl = {.val = __rdmsrl(IA32_PERF_GLOBAL_CTRL)};
-    ctrl.fields.enable_fixedctrm |= (1 << pmc_no);
-    __wrmsrl(IA32_PERF_GLOBAL_CTRL, ctrl.val);
-}
-
-inline void perf_disable_fixed_func_pmc(u32 pmc_no)
-{
-    if (pmc_no > 14)
-        return;
-
-    ia32_perf_global_ctrl_t ctrl = {.val = __rdmsrl(IA32_PERF_GLOBAL_CTRL)};
-    ctrl.fields.enable_fixedctrm &= ~(1 << pmc_no);
-    __wrmsrl(IA32_PERF_GLOBAL_CTRL, ctrl.val);
+    cr0_t cr0 = {0};
+    __asm__ __volatile__ ("mov %%cr0, %0":"=r"(cr0.val));
+    
+    cr0.fields.cd = on;
+    __asm__ __volatile__ ("mov %0, %%cr0"::"r"(cr0.val));
 }

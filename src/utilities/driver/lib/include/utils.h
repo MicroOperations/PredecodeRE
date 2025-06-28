@@ -8,6 +8,7 @@
 #include <linux/sysfs.h>
 #include <linux/kprobes.h>
 #include <linux/rwlock.h>
+#include <linux/preempt.h>
 
 #define meow(level, fmt, ...) \
     printk(level "PredecodeRE (%s): " fmt "\n", __FUNCTION__, ##__VA_ARGS__)
