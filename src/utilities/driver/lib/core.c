@@ -37,6 +37,8 @@ void do_analysis(struct predecode_re *rawr)
         u64 count2 = 0;
         __asm__ __volatile__(
 
+            "wbinvd;"
+
             /* setup r8 with cr3 since reads from cr3
                arent serialised we will have to use
                writes */
@@ -61,7 +63,7 @@ void do_analysis(struct predecode_re *rawr)
             /* zero rax dafuq out */
             "xorl %%eax, %%eax;"
 
-            /* measured instructions */
+            /* measured instructions (lcp heavy) */
             "addw $4, %%ax;"
             "shrw $1, %%ax;"
             "subw $2, %%ax;"
@@ -82,15 +84,35 @@ void do_analysis(struct predecode_re *rawr)
             : "%rcx", "%r8", "%rdx", "%rdi");
 
         totals[i] = count2 - count1;
+
+        zero_enabled_pmc(pmc0_msr, 0);
+    }
+
+    /* get average */
+    u64 avg1 = 0;
+    u64 avg2 = 0;
+    u64 total_avg = 0;
+
+    for (u32 i = 0; i < ARRAY_SIZE(totals)/2; i++) {
+        avg1 += totals[i];
+        total_avg += totals[i];
+    }
+
+    for (u32 i = ARRAY_SIZE(totals)/2; i < ARRAY_SIZE(totals); i++) {
+        avg2 += totals[i];
+        total_avg += totals[i];
     }
     
-    for (u32 i = 0; i < ARRAY_SIZE(totals); i++)
-        meow(KERN_DEBUG, "total: %llu", totals[i]);
+    avg1 /= ARRAY_SIZE(totals)/2;
+    avg2 /= ARRAY_SIZE(totals)/2;
+    total_avg /= ARRAY_SIZE(totals);
+    
+    meow(KERN_DEBUG, "avg1: %llu avg2: %llu total avg: %llu", 
+         avg1, avg2, total_avg);
 
     /* disable and zero the pmc */
     disable_pmc(0);
     __wrmsrl(pmc0_msr, 0);
-
     __wrmsrl(IA32_PERFEVTSEL0, 0);
 
     /* return */

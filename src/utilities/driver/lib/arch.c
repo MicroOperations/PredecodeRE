@@ -111,11 +111,9 @@ inline void disable_pmc(u32 pmc_no)
     __wrmsrl(IA32_PERF_GLOBAL_CTRL, ctrl.val);
 }
 
-inline void toggle_cd(bool on)
+inline void zero_enabled_pmc(u32 pmc_msr, u32 pmc_no)
 {
-    cr0_t cr0 = {0};
-    __asm__ __volatile__ ("mov %%cr0, %0":"=r"(cr0.val));
-    
-    cr0.fields.cd = on;
-    __asm__ __volatile__ ("mov %0, %%cr0"::"r"(cr0.val));
+    disable_pmc(pmc_no);
+    __wrmsrl(pmc_msr, 0);
+    enable_pmc(pmc_no);
 }

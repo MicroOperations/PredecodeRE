@@ -620,6 +620,7 @@ inline void disable_perf_metrics(void);
 inline bool fw_a_pmc_supported(u32 pmc_no);
 inline void enable_pmc(u32 pmc_no);
 inline void disable_pmc(u32 pmc_no);
-inline void toggle_cd(bool on);
+
+inline void zero_enabled_pmc(u32 pmc_msr, u32 pmc_no);
 
 #endif
