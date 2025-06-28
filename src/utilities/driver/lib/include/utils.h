@@ -13,6 +13,8 @@
 #include <linux/pg.h>
 #include <linux/mm.h>
 #include <asm/pgtable.h>
+#include <linux/vmalloc.h>
+#include <linux/gfp.h>
 
 #define meow(level, fmt, ...) \
     printk(level "PredecodeRE (%s): " fmt "\n", __FUNCTION__, ##__VA_ARGS__)

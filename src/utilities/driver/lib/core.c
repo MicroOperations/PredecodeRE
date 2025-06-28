@@ -1,6 +1,19 @@
 #include "include/core.h"
 
 /* 
+
+    * formatted this in intel syntax for you 
+      skid fucks 
+
+nop
+nop
+nop
+nop
+nop
+nop
+nop
+xor eax, eax
+xor esi, esi
 mov r8, cr3
 xor ecx, ecx
 mov cr3, r8
@@ -18,18 +31,58 @@ shl rdi, 32
 shl rdx, 32
 or rsi, rdi
 or rax, rdx
+ret
+
+rsi = count 1 
+rax = count 2
 */
 u8 benchmark_routine[] = 
-{ 0x41, 0x0F, 0x20, 0xD8, 0x31, 0xC9, 0x41, 0x0F, 0x22, 0xD8, 0x0F, 0x33, 
-  0x89, 0xC6, 0x89, 0xD7, 0x31, 0xC0, 0x66, 0x83, 0xC0, 0x04, 0x66, 0xD1, 
-  0xE8, 0x66, 0x83, 0xE8, 0x02, 0x0F, 0xB7, 0xC8, 0x0F, 0x33, 0x41, 0x0F, 
-  0x22, 0xD8, 0x48, 0xC1, 0xE7, 0x20, 0x48, 0xC1, 0xE2, 0x20, 0x48, 0x09, 
-  0xFE, 0x48, 0x09, 0xD0 };
+{ 
+    0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x31, 0xC0, 0x31, 0xF6, 
+    0x41, 0x0F, 0x20, 0xD8, 0x31, 0xC9, 0x41, 0x0F, 0x22, 0xD8, 0x0F, 
+    0x33, 0x89, 0xC6, 0x89, 0xD7, 0x31, 0xC0, 0x66, 0x83, 0xC0, 0x04, 
+    0x66, 0xD1, 0xE8, 0x66, 0x83, 0xE8, 0x02, 0x0F, 0xB7, 0xC8, 0x0F, 
+    0x33, 0x41, 0x0F, 0x22, 0xD8, 0x48, 0xC1, 0xE7, 0x20, 0x48, 0xC1, 
+    0xE2, 0x20, 0x48, 0x09, 0xFE, 0x48, 0x09, 0xD0, 0xC3 
+};
 
 void do_analysis(struct predecode_re *rawr)
 {
     if (!rawr)
         return;
+
+    /* get exported symbols we need */
+    struct kprobe kp = {.symbol_name = "kallsyms_lookup_name"};
+    register_kprobe(&kp);
+    kallsyms_ln_t kallsyms_ln = (kallsyms_ln_t)kp.addr;
+    unregister_kprobe(&kp);
+
+    if (!kallsyms_ln) {
+        meow(KERN_ERR, "couldnt get kallsyms fuck");
+        rawr->analysis.ret = -EFAULT;
+        return;
+    }
+
+    set_memory_x_t set_mem_x = (set_memory_x_t)kallsyms_ln("set_memory_x");
+    if (!set_mem_x) {
+        meow(KERN_ERR, "couldnt get set memory x fuck");
+        rawr->analysis.ret = -EFAULT;
+        return;
+    }
+
+    rawr->func_ptrs.kallsyms_ln = kallsyms_ln;
+    rawr->func_ptrs.set_mem_x = set_mem_x;
+
+    /* map physically contingous memory, this finna be large enough 
+       to fill the 64kb predecode cache, then mark it as executeable */
+    char *predecode_cache = kzalloc(PC_CACHE_SIZE, GFP_KERNEL);
+    if (!predecode_cache) {
+        meow(KERN_ERR, "couldnt alloc predecode cache mem");
+        rawr->analysis.ret = -ENOMEM;
+        return;
+    }
+
+    set_mem_x((unsigned long)predecode_cache, PC_CACHE_PAGES);
 
     /* rawdog it and use the first pmc */
 
@@ -53,17 +106,20 @@ void do_analysis(struct predecode_re *rawr)
     /* enable da bitch */
     enable_pmc(0);
 
-    /* get to benchmarking to infer how evictions are caused */
-
+    /* get to base benchmarks */
     u64 totals[128] = {0};
     u64 first_iter = 0;
     u64 second_iter = 0;
-    /* first determine average cycle count */
     for (u32 i = 0; i < ARRAY_SIZE(totals); i++) {
+
+        /* zero out the pmc to minimise chance of overflow */
+        zero_enabled_pmc(pmc0_msr, 0);
 
         u64 count1 = 0;
         u64 count2 = 0;
         __asm__ __volatile__(
+
+            ".align 64;"
 
             /* setup r8 with cr3 since reads from cr3
                arent serialised we will have to use
@@ -72,8 +128,6 @@ void do_analysis(struct predecode_re *rawr)
 
             /* count pmc0 */
             "xorl %%ecx, %%ecx;"
-            
-            ".align 64;"
 
             /* 'serialise' just this code block */
             "movq %%r8, %%cr3;"
@@ -92,9 +146,9 @@ void do_analysis(struct predecode_re *rawr)
             "xorl %%eax, %%eax;"
 
             /* measured instructions (lcp heavy) */
-            "addw $4, %%ax;"
-            "shrw $1, %%ax;"
-            "subw $2, %%ax;"
+            //"addw $4, %%ax;"
+            //"shrw $1, %%ax;"
+            //"subw $2, %%ax;"
 
             /* make the rdpmc stall for dependancy on ax */
             "movzx %%ax, %%ecx;"
@@ -108,7 +162,6 @@ void do_analysis(struct predecode_re *rawr)
             "orq %%rdi, %%rsi;"
             "orq %%rdx, %%rax;"
 
-            "wbinvd;"
             : "=S"(count1), "=a"(count2)
             :
             : "%rcx", "%r8", "%rdx", "%rdi");
@@ -119,8 +172,6 @@ void do_analysis(struct predecode_re *rawr)
             first_iter = totals[i];
         else if (i == 1)
             second_iter = totals[i];
-
-        zero_enabled_pmc(pmc0_msr, 0);
     }
 
     /* get average */
@@ -148,10 +199,15 @@ void do_analysis(struct predecode_re *rawr)
     meow(KERN_DEBUG, "avg1: %llu avg2: %llu total avg: %llu",
          avg1, avg2, total_avg);
 
+    u64 avg_block_times[PC_NO_64B_BLOCKS] = {0};
+
     /* disable and zero the pmc */
     disable_pmc(0);
     __wrmsrl(pmc0_msr, 0);
     __wrmsrl(IA32_PERFEVTSEL0, 0);
+
+    /* free the predecode cache mem */
+    kfree(predecode_cache);
 
     /* return */
     rawr->analysis.ret = 0;
