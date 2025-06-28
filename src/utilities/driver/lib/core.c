@@ -29,15 +29,14 @@ void do_analysis(struct predecode_re *rawr)
 
     /* get to benchmarking to infer how evictions are caused */
 
-    u64 totals[256] = {0};
+    u64 totals[128] = {0};
+    u64 first_iter = 0;
     /* first determine average cycle count */
     for (u32 i = 0; i < ARRAY_SIZE(totals); i++) {
 
         u64 count1 = 0;
         u64 count2 = 0;
         __asm__ __volatile__(
-
-            "wbinvd;"
 
             /* setup r8 with cr3 since reads from cr3
                arent serialised we will have to use
@@ -47,6 +46,8 @@ void do_analysis(struct predecode_re *rawr)
             /* count pmc0 */
             "xorl %%ecx, %%ecx;"
 
+            "wbinvd;"
+            
             /* 'serialise' just this code block */
             "movq %%r8, %%cr3;"
             "rdpmc;"
@@ -84,6 +85,8 @@ void do_analysis(struct predecode_re *rawr)
             : "%rcx", "%r8", "%rdx", "%rdi");
 
         totals[i] = count2 - count1;
+        if (i == 0) 
+            first_iter = totals[i];
 
         zero_enabled_pmc(pmc0_msr, 0);
     }
@@ -107,8 +110,8 @@ void do_analysis(struct predecode_re *rawr)
     avg2 /= ARRAY_SIZE(totals)/2;
     total_avg /= ARRAY_SIZE(totals);
     
-    meow(KERN_DEBUG, "avg1: %llu avg2: %llu total avg: %llu", 
-         avg1, avg2, total_avg);
+    meow(KERN_DEBUG, "first: %llu: avg1: %llu avg2: %llu total avg: %llu", 
+         first_iter, avg1, avg2, total_avg);
 
     /* disable and zero the pmc */
     disable_pmc(0);
