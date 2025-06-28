@@ -82,6 +82,10 @@ void do_analysis(struct predecode_re *rawr)
     set_mem_x((unsigned long)predecode_cache, PC_CACHE_PAGES);
 
     /* rawdog it and use the first pmc */
+    cr0_t cr0 = {0};
+    __asm__ __volatile__ ("mov %%cr0, %0":"=r"(cr0.val));
+    cr0.fields.cd = true;
+    __asm__ __volatile__ ("mov %0, %%cr0; wbinvd;"::"r"(cr0.val));
 
     /* get caps */
     u32 pmc0_msr = fw_a_pmc_supported(0) ? IA32_A_PMC0 : IA32_PMC0;
@@ -142,11 +146,8 @@ void do_analysis(struct predecode_re *rawr)
             "xorl %%eax, %%eax;"
 
             /* measured instructions (lcp heavy) */
-            "wbinvd;"
             "addw $4, %%ax;"
-            "wbinvd;"
             "shrw $1, %%ax;"
-            "wbinvd;"
             "subw $2, %%ax;"
 
             /* make the rdpmc stall for dependancy on ax */
@@ -209,6 +210,10 @@ void do_analysis(struct predecode_re *rawr)
             :"memory"
         );
     }
+
+    __asm__ __volatile__ ("mov %%cr0, %0":"=r"(cr0.val));
+    cr0.fields.cd = false;
+    __asm__ __volatile__ ("mov %0, %%cr0; wbinvd;"::"r"(cr0.val));
 
     /* disable and zero the pmc */
     disable_pmc(0);
