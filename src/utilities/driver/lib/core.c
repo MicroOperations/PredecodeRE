@@ -82,10 +82,6 @@ void do_analysis(struct predecode_re *rawr)
     set_mem_x((unsigned long)predecode_cache, PC_CACHE_PAGES);
 
     /* rawdog it and use the first pmc */
-    cr0_t cr0 = {0};
-    __asm__ __volatile__ ("mov %%cr0, %0":"=r"(cr0.val));
-    cr0.fields.cd = true;
-    __asm__ __volatile__ ("mov %0, %%cr0; wbinvd;"::"r"(cr0.val));
 
     /* get caps */
     u32 pmc0_msr = fw_a_pmc_supported(0) ? IA32_A_PMC0 : IA32_PMC0;
@@ -162,6 +158,7 @@ void do_analysis(struct predecode_re *rawr)
             "orq %%rdi, %%rsi;"
             "orq %%rdx, %%rax;"
             "subq %%rsi, %%rax;"
+            "wbinvd;"
             : "=a"(count)
             :
             : "%rcx", "%r8", "%rdx", "%rdi");
@@ -199,21 +196,8 @@ void do_analysis(struct predecode_re *rawr)
     meow(KERN_DEBUG, "avg1: %llu avg2: %llu total avg: %llu",
          avg1, avg2, total_avg);
 
+    /* reverse engineer predecode cache lookup logic */
     u64 avg_block_times[PC_NO_64B_BLOCKS] = {0};
-    for (u32 i = 0; i < PC_NO_64B_BLOCKS; i++) {
-        __asm__ __volatile__ (
-            "rep movsq;"
-            :
-            :"S"(benchmark_routine), 
-             "D"(predecode_cache + (i * 64)), 
-             "c"(sizeof(benchmark_routine)/8)
-            :"memory"
-        );
-    }
-
-    __asm__ __volatile__ ("mov %%cr0, %0":"=r"(cr0.val));
-    cr0.fields.cd = false;
-    __asm__ __volatile__ ("mov %0, %%cr0; wbinvd;"::"r"(cr0.val));
 
     /* disable and zero the pmc */
     disable_pmc(0);
