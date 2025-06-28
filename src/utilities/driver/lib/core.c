@@ -126,7 +126,6 @@ void do_analysis(struct predecode_re *rawr)
             "xorl %%ecx, %%ecx;"
 
             /* 'serialise' just this code block */
-            "wbinvd;"
             "movq %%r8, %%cr3;"
             "rdpmc;"
 
@@ -143,9 +142,13 @@ void do_analysis(struct predecode_re *rawr)
             "xorl %%eax, %%eax;"
 
             /* measured instructions (lcp heavy) */
+            "wbinvd;"
             "addw $4, %%ax;"
+            "wbinvd;"
             "shrw $1, %%ax;"
+            "wbinvd;"
             "subw $2, %%ax;"
+            "wbinvd;"
 
             /* make the rdpmc stall for dependancy on ax */
             "movzx %%ax, %%ecx;"
