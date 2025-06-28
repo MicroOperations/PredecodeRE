@@ -46,7 +46,7 @@ void do_analysis(struct predecode_re *rawr)
             /* count pmc0 */
             "xorl %%ecx, %%ecx;"
 
-            "wbinvd;"
+            //"wbinvd;"
             
             /* 'serialise' just this code block */
             "movq %%r8, %%cr3;"
