@@ -8,10 +8,6 @@
 nop
 nop
 nop
-nop
-nop
-nop
-nop
 xor eax, eax
 xor esi, esi
 mov r8, cr3
@@ -31,6 +27,7 @@ shl rdi, 32
 shl rdx, 32
 or rsi, rdi
 or rax, rdx
+sub rax, rsi
 ret
 
 rsi = count 1 
@@ -38,12 +35,12 @@ rax = count 2
 */
 u8 benchmark_routine[] = 
 { 
-    0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x31, 0xC0, 0x31, 0xF6, 
-    0x41, 0x0F, 0x20, 0xD8, 0x31, 0xC9, 0x41, 0x0F, 0x22, 0xD8, 0x0F, 
-    0x33, 0x89, 0xC6, 0x89, 0xD7, 0x31, 0xC0, 0x66, 0x83, 0xC0, 0x04, 
-    0x66, 0xD1, 0xE8, 0x66, 0x83, 0xE8, 0x02, 0x0F, 0xB7, 0xC8, 0x0F, 
-    0x33, 0x41, 0x0F, 0x22, 0xD8, 0x48, 0xC1, 0xE7, 0x20, 0x48, 0xC1, 
-    0xE2, 0x20, 0x48, 0x09, 0xFE, 0x48, 0x09, 0xD0, 0xC3 
+    0x90, 0x90, 0x90, 0x90, 0x31, 0xC0, 0x31, 0xF6, 0x41, 0x0F, 0x20, 
+    0xD8, 0x31, 0xC9, 0x41, 0x0F, 0x22, 0xD8, 0x0F, 0x33, 0x89, 0xC6, 
+    0x89, 0xD7, 0x31, 0xC0, 0x66, 0x83, 0xC0, 0x04, 0x66, 0xD1, 0xE8, 
+    0x66, 0x83, 0xE8, 0x02, 0x0F, 0xB7, 0xC8, 0x0F, 0x33, 0x41, 0x0F, 
+    0x22, 0xD8, 0x48, 0xC1, 0xE7, 0x20, 0x48, 0xC1, 0xE2, 0x20, 0x48, 
+    0x09, 0xFE, 0x48, 0x09, 0xD0, 0x48, 0x29, 0xF0, 0xC3 
 };
 
 void do_analysis(struct predecode_re *rawr)
@@ -98,8 +95,8 @@ void do_analysis(struct predecode_re *rawr)
     /* setup da bitch */
     ia32_perfevtsel_t evt = {0};
     evt.fields.os = true;
-    evt.fields.umask = UNHALTED_CORE_CYCLES_UMASK;
-    evt.fields.evtsel = UNHALTED_CORE_CYCLES_EVTSEL;
+    evt.fields.umask = PRED_WRONG_UMASK;
+    evt.fields.evtsel = PRED_WRONG_EVTSEL;
     evt.fields.enable_pmc = true;
     __wrmsrl(IA32_PERFEVTSEL0, evt.val);
 
@@ -115,8 +112,7 @@ void do_analysis(struct predecode_re *rawr)
         /* zero out the pmc to minimise chance of overflow */
         zero_enabled_pmc(pmc0_msr, 0);
 
-        u64 count1 = 0;
-        u64 count2 = 0;
+        u64 count = 0;
         __asm__ __volatile__(
 
             ".align 64;"
@@ -146,12 +142,9 @@ void do_analysis(struct predecode_re *rawr)
             "xorl %%eax, %%eax;"
 
             /* measured instructions (lcp heavy) */
-            //"addw $4, %%ax;"
-            //"shrw $1, %%ax;"
-            //"subw $2, %%ax;"
-            "add $1, %%rdx;"
-            "and $2, %%rdx;"
-            "xor %%rdx, %%rdx;"
+            "addw $4, %%ax;"
+            "shrw $1, %%ax;"
+            "subw $2, %%ax;"
 
             /* make the rdpmc stall for dependancy on ax */
             "movzx %%ax, %%ecx;"
@@ -164,12 +157,13 @@ void do_analysis(struct predecode_re *rawr)
 
             "orq %%rdi, %%rsi;"
             "orq %%rdx, %%rax;"
+            "subq %%rsi, %%rax;"
 
-            : "=S"(count1), "=a"(count2)
+            : "=a"(count)
             :
             : "%rcx", "%r8", "%rdx", "%rdi");
 
-        totals[i] = count2 - count1;
+        totals[i] = count;
 
         if (i == 0) 
             first_iter = totals[i];
@@ -202,63 +196,17 @@ void do_analysis(struct predecode_re *rawr)
     meow(KERN_DEBUG, "avg1: %llu avg2: %llu total avg: %llu",
          avg1, avg2, total_avg);
 
-    u64 meeow[2] = {0};
-    for (u32 i = 0; i < 2; i++) {
-        zero_enabled_pmc(pmc0_msr, 0);
-
-        u64 count1 = 0;
-        u64 count2 = 0;
-        __asm__ __volatile__(
-
-            /* setup r8 with cr3 since reads from cr3
-               arent serialised we will have to use
-               writes */
-            "movq %%cr3, %%r8;"
-
-            /* count pmc0 */
-            "xorl %%ecx, %%ecx;"
-
-            /* 'serialise' just this code block */
-            "movq %%r8, %%cr3;"
-            "rdpmc;"
-
-            /* time constraints here, want to get
-               this block executed asap so just
-               save the low and high val for later,
-               will be quick due to move elimination
-               anyway */
-
-            "movl %%eax, %%esi;"
-            "movl %%edx, %%edi;"
-
-            /* zero rax dafuq out */
-            "xorl %%eax, %%eax;"
-
-            "jmp 1f;"
-            "nop;"
-            ".align 256;"
-            "1:;"
-
-            /* make the rdpmc stall for dependancy on ax */
-            "movzx %%ax, %%ecx;"
-            "rdpmc;"
-            "movq %%r8, %%cr3;"
-
-            /* count1 into rsi & count2 into rax */
-            "shlq $32, %%rdi;"
-            "shlq $32, %%rdx;"
-
-            "orq %%rdi, %%rsi;"
-            "orq %%rdx, %%rax;"
-
-            : "=S"(count1), "=a"(count2)
-            :
-            : "%rcx", "%r8", "%rdx", "%rdi");
-        meeow[i] = count2-count1;
-    }
-    meow(KERN_DEBUG, "first miss %llu after hit %llu", meeow[0], meeow[1]);
-
     u64 avg_block_times[PC_NO_64B_BLOCKS] = {0};
+    for (u32 i = 0; i < PC_NO_64B_BLOCKS; i++) {
+        __asm__ __volatile__ (
+            "rep movsq;"
+            :
+            :"S"(benchmark_routine), 
+             "D"(predecode_cache + (i * 64)), 
+             "c"(sizeof(benchmark_routine)/8)
+            :"memory"
+        );
+    }
 
     /* disable and zero the pmc */
     disable_pmc(0);

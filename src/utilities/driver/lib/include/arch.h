@@ -511,6 +511,9 @@ typedef ia32_pmc_gp_cfg_c_t ia32_pmc_fx_cfg_c_t;
 #define LBR_INSERTS_EVTSEL 0xE4
 #define LBR_INSERTS_UMASK 0x1
 
+#define PRED_WRONG_EVTSEL 0xe9
+#define PRED_WRONG_UMASK 0x1
+
 /* cpuid bullshit */
 
 #define CPUID_MANUFACTURER_ID 0
