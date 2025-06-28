@@ -148,7 +148,6 @@ void do_analysis(struct predecode_re *rawr)
             "shrw $1, %%ax;"
             "wbinvd;"
             "subw $2, %%ax;"
-            "wbinvd;"
 
             /* make the rdpmc stall for dependancy on ax */
             "movzx %%ax, %%ecx;"
