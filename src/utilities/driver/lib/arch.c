@@ -91,6 +91,14 @@ inline void disable_perf_metrics(void)
     __wrmsrl(IA32_PERF_GLOBAL_CTRL, ctrl.val);
 }
 
+inline bool is_arch_pmc_no_supported(u32 pmc_no)
+{
+    u32 regs[4] = {CPUID_ARCH_PERFMON, 0, 0, 0};
+    __cpuid(&regs[0], &regs[1], &regs[2], &regs[3]);
+    arch_perfmon_a_t eax = {.val = regs[0]};
+    return eax.fields.no_pmcs > pmc_no;
+}
+
 inline bool fw_a_pmc_supported(u32 pmc_no)
 {
     ia32_perf_capabilities_t caps = {.val = __rdmsrl(IA32_PERF_CAPABILITIES)};

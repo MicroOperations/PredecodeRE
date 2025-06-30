@@ -15,7 +15,9 @@
 #include <asm/pgtable.h>
 #include <linux/vmalloc.h>
 #include <linux/gfp.h>
+#include <linux/stop_machine.h>
 
+/* meow meow mrrrp mrrrowww meow meow mrrrrooowwww ^~_~^ */
 #define meow(level, fmt, ...) \
     printk(level "PredecodeRE (%s): " fmt "\n", __FUNCTION__, ##__VA_ARGS__)
 

@@ -7,7 +7,7 @@
 /* took me a couple of hours doing all dis shit 
    from scratch
    
-   scratch ^~_~^ meow purrr rawrrr */
+    ^~_~^ meow purrr rawrrr */
 
 typedef union
 {
@@ -516,8 +516,14 @@ typedef ia32_pmc_gp_cfg_c_t ia32_pmc_fx_cfg_c_t;
 #define PRED_WRONG_EVTSEL 0xe9
 #define PRED_WRONG_UMASK 0x1
 
+#define ICACHE_HITS_EVTSEL 0x80
+#define ICACHE_HITS_UMASK 0x01
+
 #define ICACHE_MISSES_EVTSEL 0x80
 #define ICACHE_MISSES_UMASK 0x02
+
+#define MACHINE_CLEARS_EVTSEL 0xc3
+#define MACHINE_CLEARS_UMASK 0x0
 
 /* cpuid bullshit */
 
@@ -605,6 +611,12 @@ typedef union
     } fields;
 } arch_perfmon_ext_0c_t;
 
+struct pmc_event
+{
+    u32 evtsel;
+    u32 umask;
+};
+
 /* helpers */
 
 inline u64 __rdmsrl(u32 msr);
@@ -625,10 +637,10 @@ inline bool is_cldemote_supported(void);
 
 inline void disable_perf_metrics(void);
 
+inline bool is_arch_pmc_no_supported(u32 pmc_no);
 inline bool fw_a_pmc_supported(u32 pmc_no);
 inline void enable_pmc(u32 pmc_no);
 inline void disable_pmc(u32 pmc_no);
-
 inline void zero_enabled_pmc(u32 pmc_msr, u32 pmc_no);
 
 #endif
