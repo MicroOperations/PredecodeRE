@@ -143,7 +143,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
 
         if (count > 0)
-            eviction_count+=;
+            eviction_count++;
     }
 
     for (u32 i = 0; i < no_blocks; i++) {
