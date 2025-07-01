@@ -1,0 +1,1 @@
+cmd_/home/meow/projects/PredecodeRE/src/utilities/driver/predecode_re.mod := printf '%s\n'   driver.o lib/arch.o lib/utils.o lib/sys.o lib/core.o | awk '!x[$$0]++ { print("/home/meow/projects/PredecodeRE/src/utilities/driver/"$$0) }' > /home/meow/projects/PredecodeRE/src/utilities/driver/predecode_re.mod

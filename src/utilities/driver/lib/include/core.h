@@ -6,7 +6,7 @@
 
 typedef unsigned long (*kallsyms_ln_t)(const char *name);
 typedef int (*set_memory_x_t)(unsigned long addr, int numpages);
-typedef int (*set_memory_uc_t)(unsigned long addr, int numpages)
+typedef int (*set_memory_uc_t)(unsigned long addr, int numpages);
 
 #define PRED_CACHE_SIZE 65536 // the predecode cache is 64kb so yeyeyeyeye
 #define PRED_BLOCK_SIZE 64 // we finna go up dis bihhh in 64b blocks
