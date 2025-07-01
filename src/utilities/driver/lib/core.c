@@ -75,7 +75,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
     }
 
-    for (u32 i = 0; i < no_blocks/2; i++) {
+    for (u32 i = 0; i < no_blocks; i++) {
 
         u64 cacheline2 = cache2 + (i * block_size);
         zero_enabled_pmc(pmc_msr, pmc_no);
