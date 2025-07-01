@@ -77,6 +77,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
 
     for (u32 i = 0; i < no_blocks; i++) {
 
+        u64 count = 0;
         u64 cacheline2 = cache2 + (i * block_size);
         zero_enabled_pmc(pmc_msr, pmc_no);
         __asm__ __volatile__ (
@@ -86,22 +87,25 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :[func]"r"(cacheline2), 
              [pmc_no]"r"(pmc_no)
             :"%rax", "%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+
+        if (count > 0)
+            eviction_count++;
     }
 
     for (u32 i = 0; i < no_blocks; i++) {
 
         u64 cacheline1 = cache1 + (i * block_size);
-        u64 re_count = 0;
+        u64 count = 0;
         zero_enabled_pmc(pmc_msr, pmc_no);
         __asm__ __volatile__ (
             "movl %[pmc_no], %%edi;"
             "call *%[func];"
-            :"=a"(re_count)
+            :"=a"(count)
             :[func]"r"(cacheline1), 
              [pmc_no]"r"(pmc_no)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
 
-        if (re_count > 0)
+        if (count > 0)
             eviction_count++;
     }
 
