@@ -292,7 +292,7 @@ int __analysis(struct predecode_re *rawr)
 
     rawr->func_ptrs.kallsyms_ln = kallsyms_ln;
     rawr->func_ptrs.set_mem_x = set_mem_x;
-    rawr->func_ptrs.set_mem_uc
+    rawr->func_ptrs.set_mem_uc = set_mem_uc;
         
     /* start analysis routine */
     return __do_analysis(rawr);
