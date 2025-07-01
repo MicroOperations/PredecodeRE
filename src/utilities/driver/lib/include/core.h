@@ -65,6 +65,7 @@ struct reverse_pred_cache
 
     char *predecode_cache1;
     char *predecode_cache2;
+    char *predecode_cache3;
 
     u32 no_blocks;
     size_t block_size;
