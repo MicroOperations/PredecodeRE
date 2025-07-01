@@ -141,6 +141,9 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :[func]"r"(cacheline3), 
              [pmc_no]"r"(pmc_no)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+
+        if (count > 0)
+            eviction_count+=;
     }
 
     for (u32 i = 0; i < no_blocks; i++) {
@@ -156,8 +159,8 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
              [pmc_no]"r"(pmc_no)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
 
-        if (count > 0)
-            eviction_count++;
+        //if (count > 0)
+          //  eviction_count++;
     }
 
     meow(KERN_DEBUG,"first: %llu", initial_counts[0]);
