@@ -47,66 +47,90 @@ u8 benchmark_routine[] =
 
 int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
 {
-    size_t cache_size = arg->predecode_cache_size;
+    /* we pass shit via struct coz cant alloc mem here 
+       or crash bc calling stop_machine */
+
+    char *cache1 = arg->predecode_cache1;
+    char *cache2 = arg->predecode_cache2;
+
+    u32 no_blocks = arg->no_blocks;
     size_t block_size = arg->block_size;
+
     u32 pmc_msr = arg->pmc_msr;
     u32 pmc_no = arg->pmc_no;
 
-    for (u32 i = 0; i < (cache_size/block_size); i++) {
+    u64 eviction_count = 0;
+    u64 initial_counts[no_blocks];
 
-        u64 initial_count = 0;
+    for (u32 i = 0; i < no_blocks; i++) {
+
+        u64 cacheline1 = cache1 + (i * block_size);
         zero_enabled_pmc(pmc_msr, pmc_no);
         __asm__ __volatile__ (
             "movl %[pmc_no], %%edi;"
             "call *%[func];"
-            :"=a"(initial_count)
-            :[func]"r"(arg->predecode_cache + (i * block_size)), 
+            :"=a"(initial_counts[i])
+            :[func]"r"(cacheline1), 
              [pmc_no]"r"(pmc_no)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
-        
-        for (u32 j = 0; j < i; j++) {
-
-            u64 re_count = 0;
-            zero_enabled_pmc(pmc_msr, pmc_no);
-            __asm__ __volatile__ (
-                "movl %[pmc_no], %%edi;"
-                "call *%[func];"
-                :"=a"(re_count)
-                :[func]"r"(arg->predecode_cache + (j * block_size)),
-                 [pmc_no]"r"(pmc_no)
-                :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
-        }
     }
 
+     for (u32 i = 0; i < no_blocks; i++) {
+
+        u64 cacheline1 = cache1 + (i * block_size);
+        u64 re_count = 0;
+        zero_enabled_pmc(pmc_msr, pmc_no);
+        __asm__ __volatile__ (
+            "movl %[pmc_no], %%edi;"
+            "call *%[func];"
+            :"=a"(re_count)
+            :[func]"r"(cacheline1), 
+             [pmc_no]"r"(pmc_no)
+            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+
+        if (re_count >= initial_counts[i])
+            eviction_count++;
+    }
+
+    arg->rawr->analysis.eviction_count = eviction_count;
     return 0;
 }
 
 int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
 {
-    /* map physically contingous memory to fill the 64kb predecode
-       cache then copy our benchmark routine into each 64b block
-       of it, and set the regions pte's to executeable so we 
-       can actually like fuckin execute it since linux will 
-       set xd */
-    char *predecode_cache = kzalloc(PRED_CACHE_SIZE, GFP_KERNEL);
-    if (!predecode_cache) {
-        meow(KERN_ERR, "couldnt alloc predecode cache mem");
+    
+    /* map mempool for physically contingous memory regions large enough to 
+       fill the predecode cache */
+    size_t mempool_size = PRED_CACHE_SIZE*2;
+    char *mempool = kzalloc(mempool_size, GFP_KERNEL);
+    if (!mempool) {
+        meow(KERN_ERR, "couldnt alloc mempool");
         return -ENOMEM;
     }
 
-    for (u32 i = 0; i < (PRED_CACHE_SIZE/PRED_BLOCK_SIZE); i++) {
-        memcpy(predecode_cache + (i * PRED_BLOCK_SIZE), benchmark_routine,
+    char *predecode_cache1 = mempool;
+    char *predecode_cache2 = mempool + PRED_CACHE_SIZE;
+
+    /* copy in the benchmark routine to the allocated region */
+    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
+        memcpy(predecode_cache1 + (i * PRED_BLOCK_SIZE), benchmark_routine,
                sizeof(benchmark_routine));
     }
+    memcpy(predecode_cache2, predecode_cache1, PRED_CACHE_SIZE);
 
-    rawr->func_ptrs.set_mem_x((unsigned long)predecode_cache, 
-                              PRED_CACHE_SIZE/PAGE_SIZE);
+    /* linux kernel will set xd in the pte of the mapped pages, so we
+       unset this because we arent retards */
+    rawr->func_ptrs.set_mem_x((unsigned long)mempool, mempool_size/PAGE_SIZE);
     
     struct reverse_pred_cache arg = {
         .rawr = rawr,
-        .predecode_cache = predecode_cache,
-        .predecode_cache_size = PRED_CACHE_SIZE,
+
+        .predecode_cache1 = predecode_cache1,
+        .predecode_cache2 = predecode_cache2,
+
+        .no_blocks = PRED_NO_BLOCKS,
         .block_size = PRED_BLOCK_SIZE,
+
         .pmc_msr = pmc_msr,
         .pmc_no = pmc_no,
     };
@@ -115,7 +139,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     int ret = stop_machine((cpu_stop_fn_t)__do_reverse_pred_cache, &arg, 
                            cpumask_of(smp_processor_id()));
 
-    kfree(predecode_cache);
+    kfree(mempool);
     return ret;
 }
 
@@ -218,6 +242,8 @@ int __do_analysis(struct predecode_re *rawr)
     rawr->analysis.base.avg1 = avg1;
     rawr->analysis.base.avg2 = avg2;
     rawr->analysis.base.total_avg = total_avg;
+
+    meow(KERN_DEBUG, "--- metric: %s ---\n", rawr->params.event.event_name);
     
     meow(KERN_DEBUG, "base event counts:");
     meow(KERN_DEBUG, "first iter: %llu: second iter: %llu", 
@@ -227,6 +253,9 @@ int __do_analysis(struct predecode_re *rawr)
 
     /* reverse engineer the predecode cache */
     int ret = __reverse_pred_cache(rawr, pmc_msr, pmc_no);
+
+    meow(KERN_DEBUG, "guesstimated eviction count: %llu", 
+         rawr->analysis.eviction_count);
 
     /* disable and zero the pmc, were done now */
     disable_pmc(pmc_no);
@@ -255,8 +284,15 @@ int __analysis(struct predecode_re *rawr)
         return -EFAULT;
     }
 
+    set_memory_uc_t set_mem_uc = (set_memory_uc_t)kallsyms_ln("set_memory_uc");
+    if (!set_mem_uc) {
+        meow(KERN_ERR, "couldnt get set memory uc fuck");
+        return -EFAULT;
+    }
+
     rawr->func_ptrs.kallsyms_ln = kallsyms_ln;
     rawr->func_ptrs.set_mem_x = set_mem_x;
+    rawr->func_ptrs.set_mem_uc
         
     /* start analysis routine */
     return __do_analysis(rawr);

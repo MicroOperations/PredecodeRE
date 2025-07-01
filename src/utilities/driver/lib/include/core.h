@@ -6,9 +6,18 @@
 
 typedef unsigned long (*kallsyms_ln_t)(const char *name);
 typedef int (*set_memory_x_t)(unsigned long addr, int numpages);
+typedef int (*set_memory_uc_t)(unsigned long addr, int numpages)
 
 #define PRED_CACHE_SIZE 65536 // the predecode cache is 64kb so yeyeyeyeye
 #define PRED_BLOCK_SIZE 64 // we finna go up dis bihhh in 64b blocks
+#define PRED_NO_BLOCKS (PRED_CACHE_SIZE/PRED_BLOCK_SIZE)
+
+struct pmc_event
+{
+    u32 evtsel;
+    u32 umask;
+    char *event_name;
+};
 
 struct predecode_re 
 {
@@ -22,6 +31,7 @@ struct predecode_re
     {
         kallsyms_ln_t kallsyms_ln;
         set_memory_x_t set_mem_x;
+        set_memory_uc_t set_mem_uc;
     } func_ptrs;
 
     struct
@@ -36,8 +46,7 @@ struct predecode_re
             u64 total_avg;
         } base;
 
-        u64 ways_per_set;
-        u64 cacheline_size;
+        u64 eviction_count;
     } analysis;
 
     struct
@@ -54,9 +63,10 @@ struct reverse_pred_cache
 {
     struct predecode_re *rawr;
 
-    char *predecode_cache;
-    size_t predecode_cache_size;
+    char *predecode_cache1;
+    char *predecode_cache2;
 
+    u32 no_blocks;
     size_t block_size;
 
     u32 pmc_msr;

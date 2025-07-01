@@ -472,8 +472,8 @@ typedef ia32_pmc_gp_cfg_c_t ia32_pmc_fx_cfg_c_t;
 
 /* events and umasks */
 
-#define UNHALTED_CORE_CYCLES_EVTSEL 0x3C 
-#define UNHALTED_CORE_CYCLES_UMASK 0x0
+#define UNHALTED_CYCLES_EVTSEL 0x3C 
+#define UNHALTED_CYCLES_UMASK 0x0
 
 #define INSTRUCTIONS_RETIRED_EVTSEL 0xC0
 #define INSTRUCTIONS_RETIRED_UMASK 0x0
@@ -610,12 +610,6 @@ typedef union
         u32 reserved0 : 24;
     } fields;
 } arch_perfmon_ext_0c_t;
-
-struct pmc_event
-{
-    u32 evtsel;
-    u32 umask;
-};
 
 /* helpers */
 

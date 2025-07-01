@@ -17,15 +17,16 @@ module_param(pmc_event_no, uint, 0);
 MODULE_PARM_DESC(pmc_event_no,
 "pmc event no (default: 0):\n"
 "   0: predecode cache mispred\n"
-"   1: icache hits\n"
-"   2: icache miss\n"
-"   3: machine clears\n"
-"   4. unhalted core cycles");
+"   1: icache miss\n"
+"   2: machine clears\n"
+"   3. unhalted core cycles");
 
 /* ur so pawesome u have a fluffy tail and ur 
    paws r so fuzzy ur so meow meow, come here
    and lemme pet u, lets cuddle, ^~_~^ purrrr
    purrrr meow meow meow meow mrrrrooooowwww */
+
+#define SYSFS_DIR_NAME "predecode_re"
 
 struct predecode_re rawr = {
 
@@ -45,14 +46,11 @@ struct predecode_re rawr = {
     .lock = __MUTEX_INITIALIZER(rawr.lock),
 };
 
-#define SYSFS_DIR_NAME "predecode_re"
-
 struct pmc_event pmc_events[] = {
-    {PRED_WRONG_EVTSEL, PRED_WRONG_UMASK},
-    {ICACHE_HITS_EVTSEL, ICACHE_HITS_UMASK},
-    {ICACHE_MISSES_EVTSEL, ICACHE_MISSES_UMASK},
-    {MACHINE_CLEARS_EVTSEL, MACHINE_CLEARS_UMASK},
-    {UNHALTED_REF_CYCLES_EVTSEL, UNHALTED_CORE_CYCLES_UMASK}
+    {PRED_WRONG_EVTSEL, PRED_WRONG_UMASK, "predecode cache mispredictions"},
+    {ICACHE_MISSES_EVTSEL, ICACHE_MISSES_UMASK, "icache misses"},
+    {MACHINE_CLEARS_EVTSEL, MACHINE_CLEARS_UMASK, "machine clears"},
+    {UNHALTED_CYCLES_EVTSEL, UNHALTED_CYCLES_UMASK, "unhalted core cycles"}
 };
 
 static int __init driver_entry(void)
