@@ -75,7 +75,20 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
     }
 
-     for (u32 i = 0; i < no_blocks; i++) {
+    for (u32 i = 0; i < no_blocks/2; i++) {
+
+        u64 cacheline2 = cache2 + (i * block_size);
+        zero_enabled_pmc(pmc_msr, pmc_no);
+        __asm__ __volatile__ (
+            "movl %[pmc_no], %%edi;"
+            "call *%[func];"
+            :
+            :[func]"r"(cacheline2), 
+             [pmc_no]"r"(pmc_no)
+            :"%rax", "%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+    }
+
+    for (u32 i = 0; i < no_blocks; i++) {
 
         u64 cacheline1 = cache1 + (i * block_size);
         u64 re_count = 0;
