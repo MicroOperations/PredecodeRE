@@ -115,14 +115,25 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
 
     u64 patch_offset = 25;
     u8 patch[] = {
-        0x67, 0x0F, 0x1F, 0x04, 0x00, 
-        0x67, 0x0F, 0x1F, 0x04, 0x00, 
-        0x90, 0x90
+        0x90, 0x90, 0x90, 0x90, 0x90, 
+        0x90, 0x90, 0x90, 0x90, 0x90,
+        0x90, 0x90 
     };
 
     for (u32 i = 0; i < no_blocks; i++) {
         u64 offset = (i * block_size) + patch_offset;
         memcpy(cache1 + offset, patch, sizeof(patch));
+    }
+
+    u8 patch2[] = {
+        0x66, 0x83, 0xC0, 0x04, 
+        0x66, 0x83, 0xE8, 0x02, 
+        0x66, 0x83, 0xE8, 0x02
+    };
+
+    for (u32 i = 0; i < no_blocks; i++) {
+        u64 offset = (i * block_size) + patch_offset;
+        memcpy(cache1 + offset, patch2, sizeof(patch2));
     }
 
     for (u32 i = 0; i < no_blocks; i++) {
@@ -153,7 +164,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     
     /* map mempool for physically contingous memory regions large enough to 
        fill the predecode cache */
-    size_t mempool_size = PRED_CACHE_SIZE*2;
+    size_t mempool_size = PRED_CACHE_SIZE * 2;
     char *mempool = kzalloc(mempool_size, GFP_KERNEL);
     if (!mempool) {
         meow(KERN_ERR, "couldnt alloc mempool");
@@ -172,7 +183,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     memcpy(predecode_cache2, predecode_cache1, PRED_CACHE_SIZE);
 
     /* linux kernel will set xd in the pte of the mapped pages, so we
-       unset this because we arent retards */
+       unset this because we arent silly billies */
     rawr->func_ptrs.set_mem_x((unsigned long)mempool, mempool_size/PAGE_SIZE);
     
     struct reverse_pred_cache arg = {
@@ -187,39 +198,6 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
         .pmc_msr = pmc_msr,
         .pmc_no = pmc_no,
     };
-
-    /* check for tlb evictions causing predecode cache evictions */
-    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
-
-        zero_enabled_pmc(pmc_msr, pmc_no);
-        __asm__ __volatile__ (
-            "movl %[pmc_no], %%edi;"
-            "call *%[func];"
-            :
-            :[func]"r"(predecode_cache1 + (i * PRED_BLOCK_SIZE)), 
-             [pmc_no]"r"(pmc_no)
-            : "%rax", "%rcx", "%rdx", "%rsi", "%rdi", "%r8");
-    }
-
-    u64 evictions = 0;
-    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
-
-        u64 count = 0;
-        zero_enabled_pmc(pmc_msr, pmc_no);
-
-        __asm__ __volatile__ (
-            "movl %[pmc_no], %%edi;"
-            "call *%[func];"
-            :"=a"(count)
-            :[func]"r"(predecode_cache1 + (i * PRED_BLOCK_SIZE)), 
-             [pmc_no]"r"(pmc_no)
-            : "%rcx", "%rdx", "%rsi", "%rdi", "%r8");
-
-        if (count > 0)
-            evictions++;
-    }
-
-    meow(KERN_DEBUG, "tlb flush evictions: %llu", evictions);
 
     /* reverse engineer the predecode cache on the meow meow core rawrrr */
     int ret = stop_machine((cpu_stop_fn_t)__do_reverse_pred_cache, &arg, 
