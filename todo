@@ -1,0 +1,10 @@
+- check tlb evictions cause predecode cache evictions
+- self modifying code effect on predecode cache + predecode cache coherency with l1i
+- check if predecode cache shared between cores
+- check if predecode cache flushed on priv boundary
+
+findings:
+
+- cache flushes can cause predecode cache flushes
+- disabling caching in cr0 control reg disables predecode cache
+- predecode cache used to predict predecode data (instruction boundaries, type of instruction etc)

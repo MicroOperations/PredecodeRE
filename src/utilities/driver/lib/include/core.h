@@ -7,6 +7,7 @@
 typedef unsigned long (*kallsyms_ln_t)(const char *name);
 typedef int (*set_memory_x_t)(unsigned long addr, int numpages);
 typedef int (*set_memory_uc_t)(unsigned long addr, int numpages);
+typedef void (*flush_tlb_kernel_range_t)(unsigned long start, unsigned long end);
 
 #define PRED_CACHE_SIZE 65536 // the predecode cache is 64kb so yeyeyeyeye
 #define PRED_BLOCK_SIZE 64 // we finna go up dis bihhh in 64b blocks
@@ -32,6 +33,7 @@ struct predecode_re
         kallsyms_ln_t kallsyms_ln;
         set_memory_x_t set_mem_x;
         set_memory_uc_t set_mem_uc;
+        flush_tlb_kernel_range_t __flush_tlb_kernel_range;
     } func_ptrs;
 
     struct
@@ -65,8 +67,6 @@ struct reverse_pred_cache
 
     char *predecode_cache1;
     char *predecode_cache2;
-    char *predecode_cache3;
-    char *predecode_cache4;
 
     u32 no_blocks;
     size_t block_size;
