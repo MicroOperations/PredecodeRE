@@ -190,12 +190,13 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
                sizeof(benchmark_routine1));
     }
 
-    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
-        memcpy(predecode_cache2 + (i * PRED_BLOCK_SIZE), benchmark_routine2,
-               sizeof(benchmark_routine2));
-    }
+    //for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
+      //  memcpy(predecode_cache2 + (i * PRED_BLOCK_SIZE), benchmark_routine2,
+      //         sizeof(benchmark_routine2));
+    //}
 
-    memcpy(predecode_cache3, predecode_cache2, PRED_CACHE_SIZE);
+    memcpy(predecode_cache2, predecode_cache1, PRED_CACHE_SIZE);
+    memcpy(predecode_cache3, predecode_cache1, PRED_CACHE_SIZE);
 
     /* linux kernel will set xd in the pte of the mapped pages, so we
        unset this because we arent retards */
