@@ -125,6 +125,20 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
         memcpy(cache1 + offset, patch, sizeof(patch));
     }
 
+    for (u32 i = 0; i < no_blocks; i++) {
+
+        char *cacheline = cache1 + (i * block_size);
+        zero_enabled_pmc(pmc_msr, pmc_no);
+        
+        __asm__ __volatile__ (
+            "movl %[pmc_no], %%edi;"
+            "call *%[func];"
+            :"=a"(initial_counts[i])
+            :[func]"r"(cacheline), 
+             [pmc_no]"r"(pmc_no)
+            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+    }
+
     u8 patch2[] = {
         0x66, 0x83, 0xC0, 0x04, 
         0x66, 0x83, 0xE8, 0x02, 
