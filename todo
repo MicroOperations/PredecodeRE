@@ -1,7 +1,6 @@
-- check tlb evictions cause predecode cache evictions
-- self modifying code effect on predecode cache + predecode cache coherency with l1i
 - check if predecode cache shared between cores
 - check if predecode cache flushed on priv boundary
+- re its layout
 
 findings:
 

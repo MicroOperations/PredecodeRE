@@ -115,8 +115,6 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
 
     u64 patch_offset = 25;
     u8 patch[] = {
-        //0x66, 0x83, 0xC0, 0x02, 
-        //0x0F, 0x1F, 0x04, 0x00
         0x67, 0x0F, 0x1F, 0x04, 0x00, 
         0x67, 0x0F, 0x1F, 0x04, 0x00, 
         0x90, 0x90
@@ -127,7 +125,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
         memcpy(cache1 + offset, patch, sizeof(patch));
     }
 
-    /*u8 patch2[] = {
+    u8 patch2[] = {
         0x66, 0x83, 0xC0, 0x04, 
         0x66, 0x83, 0xE8, 0x02, 
         0x66, 0x83, 0xE8, 0x02
@@ -136,7 +134,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
     for (u32 i = 0; i < no_blocks; i++) {
         u64 offset = (i * block_size) + patch_offset;
         memcpy(cache1 + offset, patch2, sizeof(patch2));
-    }*/
+    }
 
     for (u32 i = 0; i < no_blocks; i++) {
 
