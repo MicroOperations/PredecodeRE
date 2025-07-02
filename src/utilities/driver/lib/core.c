@@ -129,6 +129,25 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
     }
 
+    u64 ev2 = 0;
+    for (u32 i = 0; i < no_blocks; i++) {
+
+        u64 count = 0;
+        char *cacheline2 = cache2 + (i * block_size);
+        zero_enabled_pmc(pmc_msr, pmc_no);
+        __asm__ __volatile__ (
+            "movl %[pmc_no], %%edi;"
+            "call *%[func];"
+            :"=a"(count)
+            :[func]"r"(cacheline2), 
+             [pmc_no]"r"(pmc_no)
+            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+
+        if (count > 0)
+            ev2++;
+    }
+    meow(KERN_DEBUG, "ev2: %llu", ev2);
+
     for (u32 i = 0; i < no_blocks; i++) {
 
         u64 count = 0;
@@ -142,6 +161,25 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
              [pmc_no]"r"(pmc_no)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
     }
+
+    u64 ev3 = 0;
+    for (u32 i = 0; i < no_blocks; i++) {
+
+        u64 count = 0;
+        char *cacheline3 = cache3 + (i * block_size);
+        zero_enabled_pmc(pmc_msr, pmc_no);
+        __asm__ __volatile__ (
+            "movl %[pmc_no], %%edi;"
+            "call *%[func];"
+            :"=a"(count)
+            :[func]"r"(cacheline3), 
+             [pmc_no]"r"(pmc_no)
+            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+
+        if (count > 0)
+            ev3++;
+    }
+    meow(KERN_DEBUG, "ev3: %llu", ev2);
 
     for (u32 i = 0; i < no_blocks; i++) {
 
@@ -187,12 +225,8 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
                sizeof(benchmark_routine1));
     }
 
-    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
-        memcpy(predecode_cache2 + (i * PRED_BLOCK_SIZE), benchmark_routine2,
-               sizeof(benchmark_routine2));
-    }
-
-    memcpy(predecode_cache3, predecode_cache2, PRED_CACHE_SIZE);
+    memcpy(predecode_cache2, predecode_cache1, PRED_CACHE_SIZE);
+    memcpy(predecode_cache3, predecode_cache1, PRED_CACHE_SIZE);
 
     /* linux kernel will set xd in the pte of the mapped pages, so we
        unset this because we arent retards */
