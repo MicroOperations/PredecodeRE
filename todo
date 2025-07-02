@@ -2,15 +2,15 @@
 - check if predecode cache flushed on priv boundary
 - re its layout
 
-findings:
+# findings
 
-/* coherency */
+coherency:
 - cache evictions can cause predecode cache evictions
 - tlb evictions can cause predecode cache evictions 
 - disabling caching in cr0 control reg disables predecode cache
-- the predecode cache isnt  coherent with the l1i cache
+- the predecode cache isnt  coherent with the l1i cache nor the itlb
 
-/* predecode cache utilisation */
+predecode cache utilisation:
 - predecode cache is used to predict data which may be related to predecoding 
   (instruction boundaries, type of instruction, etc),
 
@@ -22,3 +22,10 @@ findings:
 - in terms of self modifying code, patching an lcp instruction within the predecode 
   cache with a different lcp and then executing that code would cause a predecode cache 
   misprediction and cause the predecode cache to get updated
+
+- when an lcp instruction is being predecoded the processor looks up the predecode 
+  cache, and uses the data retreived to predict relevant data (such as instruction boundaries, 
+  type of instruction etc), if a misprediction occurs, it updates the cache accordingly,
+  the predecode cache isnt coherent with the l1i nor the itlb, and it is only updated 
+  when a misprediction occurs, and during my tests only instructions with lcp's utilised
+  the predecode cache
