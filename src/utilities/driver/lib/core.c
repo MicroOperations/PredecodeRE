@@ -213,8 +213,8 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     meow(KERN_DEBUG, "tlb flush evictions: %llu", evictions);
 
     /* reverse engineer the predecode cache on the meow meow core rawrrr */
-    int ret = stop_machine((cpu_stop_fn_t)__do_reverse_pred_cache, &arg, 
-                           cpumask_of(smp_processor_id()));
+    int ret = 0;//stop_machine((cpu_stop_fn_t)__do_reverse_pred_cache, &arg, 
+                  //         cpumask_of(smp_processor_id()));
 
     kfree(mempool);
     return ret;
