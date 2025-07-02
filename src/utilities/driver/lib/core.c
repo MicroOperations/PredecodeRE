@@ -162,6 +162,44 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
         }
     }
 
+    for (u32 i = 0; i < no_blocks; i++) {
+
+        u64 count = 0;
+        char *cacheline2 = cache2 + (i * block_size);
+        zero_enabled_pmc(pmc_msr, pmc_no);
+        __asm__ __volatile__ (
+            "movl %[pmc_no], %%edi;"
+            "call *%[func];"
+            :"=a"(count)
+            :[func]"r"(cacheline2), 
+             [pmc_no]"r"(pmc_no)
+            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+
+        if (count > 0) {
+            meow(KERN_DEBUG, "eviction at block2: %u", i);
+            eviction_count++;
+        }
+    }
+
+    for (u32 i = 0; i < no_blocks; i++) {
+
+        u64 count = 0;
+        char *cacheline3 = cache3 + (i * block_size);
+        zero_enabled_pmc(pmc_msr, pmc_no);
+        __asm__ __volatile__ (
+            "movl %[pmc_no], %%edi;"
+            "call *%[func];"
+            :"=a"(count)
+            :[func]"r"(cacheline3), 
+             [pmc_no]"r"(pmc_no)
+            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+
+        if (count > 0) {
+            meow(KERN_DEBUG, "eviction at block3: %u", i);
+            eviction_count++;
+        }
+    }
+
     meow(KERN_DEBUG,"first: %llu", initial_counts[0]);
     arg->rawr->analysis.eviction_count = eviction_count;
     return 0;
