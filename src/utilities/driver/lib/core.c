@@ -113,6 +113,18 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
     }
 
+    u64 patch_offset = 25;
+    u8 patch[] = {
+        0x67, 0x0F, 0x1F, 0x04, 0x00, 
+        0x67, 0x0F, 0x1F, 0x04, 0x00, 
+        0x90, 0x90
+    };
+
+    for (u32 i = 0; i < no_blocks; i++) {
+        u64 offset = (i * block_size) + patch_offset;
+        memcpy(cache1 + offset, patch, sizeof(patch));
+    }
+
     for (u32 i = 0; i < no_blocks; i++) {
 
         u64 count = 0;
@@ -189,9 +201,6 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
             : "%rax", "%rcx", "%rdx", "%rsi", "%rdi", "%r8");
     }
 
-   rawr->func_ptrs.__flush_tlb_kernel_range((unsigned long)predecode_cache1, 
-                                            (unsigned long)predecode_cache1 + PRED_CACHE_SIZE - 1);
-
     u64 evictions = 0;
     for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
 
@@ -213,8 +222,8 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     meow(KERN_DEBUG, "tlb flush evictions: %llu", evictions);
 
     /* reverse engineer the predecode cache on the meow meow core rawrrr */
-    int ret = 0;//stop_machine((cpu_stop_fn_t)__do_reverse_pred_cache, &arg, 
-                  //         cpumask_of(smp_processor_id()));
+    int ret = stop_machine((cpu_stop_fn_t)__do_reverse_pred_cache, &arg, 
+                           cpumask_of(smp_processor_id()));
 
     kfree(mempool);
     return ret;
