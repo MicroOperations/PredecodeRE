@@ -152,7 +152,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
              [pmc_no]"r"(pmc_no)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
 
-        if (count == 3)
+        if (count == 2)
             eviction_count++;
     }
 

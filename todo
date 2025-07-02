@@ -9,4 +9,5 @@ findings:
 - tlb evictions can cause predecode cache evictions 
 - disabling caching in cr0 control reg disables predecode cache
 - the predecode cache isnt completely coherent with the l1i cache
-- predecode cache used to predict predecode data (instruction boundaries, type of instruction etc)
+- predecode cache is used to predict predecode data (instruction boundaries, type of instruction etc),
+  seems to be much more effective with lcp's
