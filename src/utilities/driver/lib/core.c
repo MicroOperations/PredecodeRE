@@ -92,6 +92,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
     char *cache1 = arg->predecode_cache1;
     char *cache2 = arg->predecode_cache2;
     char *cache3 = arg->predecode_cache3;
+    char *cache4 = arg->predecode_cache4;
 
     u32 no_blocks = arg->no_blocks;
     size_t block_size = arg->block_size;
@@ -104,100 +105,52 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
 
     for (u32 i = 0; i < no_blocks; i++) {
 
-        char *cacheline1 = cache1 + (i * block_size);
+        char *cacheline = cache1 + (i * block_size);
         zero_enabled_pmc(pmc_msr, pmc_no);
+        
         __asm__ __volatile__ (
             "movl %[pmc_no], %%edi;"
             "call *%[func];"
             :"=a"(initial_counts[i])
-            :[func]"r"(cacheline1), 
+            :[func]"r"(cacheline), 
              [pmc_no]"r"(pmc_no)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
     }
 
-    for (u32 i = 0; i < no_blocks; i++) {
+    char *secondary_caches[] = {cache2, cache3, cache4};
+    for (u32 i = 0; i < ARRAY_SIZE(secondary_caches); i++) {
+        for (u32 j = 0; j < no_blocks; j++) {
 
-        u64 count = 0;
-        char *cacheline2 = cache2 + (i * block_size);
-        zero_enabled_pmc(pmc_msr, pmc_no);
-        __asm__ __volatile__ (
-            "movl %[pmc_no], %%edi;"
-            "call *%[func];"
-            :"=a"(count)
-            :[func]"r"(cacheline2), 
-             [pmc_no]"r"(pmc_no)
-            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
-    }
+            u64 count = 0;
+            char *cacheline = secondary_caches[i] + (i * block_size);
+            zero_enabled_pmc(pmc_msr, pmc_no);
 
-    for (u32 i = 0; i < no_blocks; i++) {
-
-        u64 count = 0;
-        char *cacheline3 = cache3 + (i * block_size);
-        zero_enabled_pmc(pmc_msr, pmc_no);
-        __asm__ __volatile__ (
-            "movl %[pmc_no], %%edi;"
-            "call *%[func];"
-            :"=a"(count)
-            :[func]"r"(cacheline3), 
-             [pmc_no]"r"(pmc_no)
-            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
-    }
-
-    for (u32 i = 0; i < no_blocks; i++) {
-
-        u64 count = 0;
-        char *cacheline1 = cache1 + (i * block_size);
-        zero_enabled_pmc(pmc_msr, pmc_no);
-        __asm__ __volatile__ (
-            "movl %[pmc_no], %%edi;"
-            "call *%[func];"
-            :"=a"(count)
-            :[func]"r"(cacheline1), 
-             [pmc_no]"r"(pmc_no)
-            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
-
-        if (count > 0) {
-            meow(KERN_DEBUG, "eviction at block: %u", i);
-            eviction_count++;
+            __asm__ __volatile__ (
+                "movl %[pmc_no], %%edi;"
+                "call *%[func];"
+                :"=a"(count)
+                :[func]"r"(cacheline), 
+                 [pmc_no]"r"(pmc_no)
+                :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
         }
     }
 
     for (u32 i = 0; i < no_blocks; i++) {
 
         u64 count = 0;
-        char *cacheline2 = cache2 + (i * block_size);
+        char *cacheline = cache1 + (i * block_size);
         zero_enabled_pmc(pmc_msr, pmc_no);
+
         __asm__ __volatile__ (
             "movl %[pmc_no], %%edi;"
             "call *%[func];"
             :"=a"(count)
-            :[func]"r"(cacheline2), 
+            :[func]"r"(cacheline), 
              [pmc_no]"r"(pmc_no)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
 
-        if (count > 0) {
-            meow(KERN_DEBUG, "eviction at block2: %u", i);
+        if (count > 0)
             eviction_count++;
-        }
-    }
-
-    for (u32 i = 0; i < no_blocks; i++) {
-
-        u64 count = 0;
-        char *cacheline3 = cache3 + (i * block_size);
-        zero_enabled_pmc(pmc_msr, pmc_no);
-        __asm__ __volatile__ (
-            "movl %[pmc_no], %%edi;"
-            "call *%[func];"
-            :"=a"(count)
-            :[func]"r"(cacheline3), 
-             [pmc_no]"r"(pmc_no)
-            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
-
-        if (count > 0) {
-            meow(KERN_DEBUG, "eviction at block3: %u", i);
-            eviction_count++;
-        }
     }
 
     meow(KERN_DEBUG,"first: %llu", initial_counts[0]);
@@ -210,7 +163,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     
     /* map mempool for physically contingous memory regions large enough to 
        fill the predecode cache */
-    size_t mempool_size = PRED_CACHE_SIZE*3;
+    size_t mempool_size = PRED_CACHE_SIZE*4;
     char *mempool = kzalloc(mempool_size, GFP_KERNEL);
     if (!mempool) {
         meow(KERN_ERR, "couldnt alloc mempool");
@@ -220,6 +173,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     char *predecode_cache1 = mempool;
     char *predecode_cache2 = predecode_cache1 + PRED_CACHE_SIZE;
     char *predecode_cache3 = predecode_cache2 + PRED_CACHE_SIZE;
+    char *predecode_cache4 = predecode_cache3 + PRED_CACHE_SIZE;
 
     /* copy in the benchmark routine to the allocated region */
     for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
@@ -229,6 +183,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
 
     memcpy(predecode_cache2, predecode_cache1, PRED_CACHE_SIZE);
     memcpy(predecode_cache3, predecode_cache1, PRED_CACHE_SIZE);
+    memcpy(predecode_cache4, predecode_cache1, PRED_CACHE_SIZE);
 
     /* linux kernel will set xd in the pte of the mapped pages, so we
        unset this because we arent retards */
@@ -240,6 +195,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
         .predecode_cache1 = predecode_cache1,
         .predecode_cache2 = predecode_cache2,
         .predecode_cache3 = predecode_cache3,
+        .predecode_cache4 = predecode_cache4,
 
         .no_blocks = PRED_NO_BLOCKS,
         .block_size = PRED_BLOCK_SIZE,
