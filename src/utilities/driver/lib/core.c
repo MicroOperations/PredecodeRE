@@ -31,30 +31,6 @@ sub rax, rsi
 ret
 
 rax = count
-
-benchmark2 (throwaway code bruh)
-
-xor ecx, ecx
-xor edx, edx
-add eax, 1
-nop dword ptr [eax + eax*1]
-nop dword ptr [eax + eax*1]
-shr r8, 1
-shl r9d, 2
-add edx, 3
-nop dword ptr [eax + eax*1]
-shr edx, 2
-add esi, 4
-nop
-xor r10d, r10d
-shr esi, 2
-shr edi, 5
-nop dword ptr [eax + eax*1]
-shr edi, 2
-add edi, 7
-xor eax, eax
-ret
-
 */
 u8 benchmark_routine1[] = 
 {
