@@ -1,31 +1,25 @@
 - check if predecode cache shared between cores
 - check if predecode cache flushed on priv boundary
-- re its layout
+- re its layout, lookup algorithm, eviction policies
 
 # findings
 
 coherency:
-- cache evictions can cause predecode cache evictions
-- tlb evictions can cause predecode cache evictions 
-- disabling caching in cr0 control reg disables predecode cache
-- the predecode cache isnt  coherent with the l1i cache nor the itlb
+- Cache evictions can cause predecode cache evictions
+- Tlb evictions can cause predecode cache evictions 
+- Disabling caching in cr0 control reg disables predecode cache
+- The predecode cache isnt  coherent with the l1i cache nor the itlb
 
 predecode cache utilisation:
-- predecode cache is used to predict data which may be related to predecoding 
-  (instruction boundaries, type of instruction, etc),
 
-- seems to be primarily aimed torwards dealing with lcp's
-
-- When instructions which we tested with didnt contain an lcp, the predecode cache 
-  was not looked up and therefore it would also not get updated accordingly
-
-- in terms of self modifying code, patching an lcp instruction within the predecode 
-  cache with a different lcp and then executing that code would cause a predecode cache 
-  misprediction and cause the predecode cache to get updated
-
-- when an lcp instruction is being predecoded the processor looks up the predecode 
+- When an instruction with an lcp is being predecoded the processor looks up the predecode 
   cache, and uses the data retreived to predict relevant data (such as instruction boundaries, 
-  type of instruction etc), if a misprediction occurs, it updates the cache accordingly,
-  the predecode cache isnt coherent with the l1i nor the itlb, and it is only updated 
-  when a misprediction occurs, and during my tests only instructions with lcp's utilised
-  the predecode cache
+  type of instruction etc)
+
+- During my tests I found that only instructions with lcp's were  
+  utilising the predecode cache
+
+- Only when a misprediction occurs the predecode cache is updated accordingly 
+
+- Instructions which don't utilise the predecode cache do not cause the predecode cache to
+  be updated
