@@ -30,11 +30,7 @@ MODULE_PARM_DESC(pmc_event_no,
 
 struct predecode_re rawr = {
 
-    .params = {
-        .pmc_no = 0,
-        .event = {},
-    },
-
+    .params = {},
     .analysis = {},
 
     .sysfs = {

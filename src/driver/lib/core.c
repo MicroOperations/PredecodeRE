@@ -77,6 +77,9 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
     }
 
+    //__asm__ __volatile__ ("wbinvd");
+    //__asm__ __volatile__ ("invlpg (%0)"::"r"(cache1));
+
     for (u32 i = 0; i < no_blocks; i++) {
 
         u64 count = 0;
@@ -91,7 +94,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
              [pmc_no]"r"(pmc_no)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
 
-        if (count == 2)
+        if (count > 0)
             eviction_count++;
     }
 
