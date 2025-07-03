@@ -1,6 +1,6 @@
 # Findings
 
-Predecode cache utilisation in 6 steps:
+**Predecode cache utilisation in 6 steps:**
 
   1. Instruction fetch
 
@@ -15,9 +15,9 @@ Predecode cache utilisation in 6 steps:
   5. If misprediction occurs update the predecode cache with the correct instruction 
      predecode related metadata
 
-  6. issue relevant data onto the instruction queue
+  6. Issue relevant data onto the instruction queue
 
-Coherency:
+**Coherency:**
 
 - Cache evictions/flushes usually dont cause predecode cache evictions/flushes
 
@@ -26,14 +26,3 @@ Coherency:
 - Disabling caching in cr0 control reg disables predecode cache
 
 - The predecode cache isnt coherent with the l1i cache nor the itlb
-
-# Methodology
-
-Environment:
-- All tests were conducted on an intel celeron n4020 processor
-
-- Driver was ran on linux kernel v6.1.0
-
-- Source code can be found on this repo either within the current 
-
-  source code of the driver or by scrolling through the commit history
