@@ -39,7 +39,6 @@ static int __init driver_entry(void)
 {
     meow(KERN_DEBUG, "driver loaded");
 
-
     /* validate params */
     if (!is_arch_pmc_no_supported(pmc_no)) {
         meow(KERN_ERR, "invalid pmc no");
