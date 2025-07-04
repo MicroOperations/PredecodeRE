@@ -40,9 +40,6 @@ struct predecode_re
     {      
         struct 
         {   
-            u64 first_iter;
-            u64 second_iter;
-
             u64 avg1;
             u64 avg2;
             u64 total_avg;
@@ -51,14 +48,14 @@ struct predecode_re
         u64 eviction_count;
     } analysis;
 
-    struct
+    struct 
     {
-        struct kobj_attribute *attr;
-        struct kobject *kobj_ref;
-        bool sysfs_setup;
-    } sysfs;
-
-    struct mutex lock;
+        struct chardev *chardev;
+        struct file_operations *file_ops;
+        char *cachemem;
+        u32 core;
+        u32 pmc_msr;
+    } ioctl;
 };
 
 struct reverse_pred_cache
@@ -75,7 +72,7 @@ struct reverse_pred_cache
     u32 pmc_no;
 };
 
-extern u8 benchmark_routine[];
+extern u8 benchmark_routine1[];
 
 int __do_reverse_pred_cache(struct reverse_pred_cache *arg);
 int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no);

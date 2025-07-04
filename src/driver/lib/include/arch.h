@@ -637,4 +637,6 @@ inline void enable_pmc(u32 pmc_no);
 inline void disable_pmc(u32 pmc_no);
 inline void zero_enabled_pmc(u32 pmc_msr, u32 pmc_no);
 
+inline void toggle_user_rdpmc(bool on);
+
 #endif

@@ -142,6 +142,49 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
         .pmc_no = pmc_no,
     };
 
+    /* shared pred cache re (2 core intel celeron n4020)*/
+    u32 cur = smp_processor_id();
+    u32 cpu;
+    u64 eviction_count = 0;
+    for_each_online_cpu(cpu) {
+        if (cpu == cur)
+            continue;
+
+        for (u32 i = 0; i <PRED_NO_BLOCKS; i++) {
+
+            u64 count = 0;
+            char *cacheline = predecode_cache1 + (i * PRED_BLOCK_SIZE);
+            zero_enabled_pmc(pmc_msr, pmc_no);
+
+            __asm__ __volatile__ (
+                "movl %[pmc_no], %%edi;"
+                "call *%[func];"
+                :"=a"(count)
+                :[func]"r"(cacheline), 
+                 [pmc_no]"r"(pmc_no)
+                :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+        }
+    }
+
+    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
+
+            u64 count = 0;
+            char *cacheline = predecode_cache1 + (i * PRED_BLOCK_SIZE);
+            zero_enabled_pmc(pmc_msr, pmc_no);
+
+            __asm__ __volatile__ (
+                "movl %[pmc_no], %%edi;"
+                "call *%[func];"
+                :"=a"(count)
+                :[func]"r"(cacheline), 
+                 [pmc_no]"r"(pmc_no)
+                :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+
+        if (count > 0)
+            eviction_count++;
+    }
+    meow(KERN_DEBUG, "shared cache evictions: %llu", eviction_count);
+
     /* reverse engineer the predecode cache on the meow meow core rawrrr */
     int ret = stop_machine((cpu_stop_fn_t)__do_reverse_pred_cache, &arg, 
                            cpumask_of(smp_processor_id()));
@@ -154,6 +197,7 @@ int __do_analysis(struct predecode_re *rawr)
 {
     /* disable, zero out and setup the pmc */
     u32 pmc_no = rawr->params.pmc_no;
+    u32 evtsel_msr = IA32_PERFEVTSEL0 + pmc_no;
     u32 pmc_msr = (fw_a_pmc_supported(pmc_no) ? 
                    IA32_A_PMC0 : IA32_PMC0) + pmc_no;
 
@@ -167,7 +211,7 @@ int __do_analysis(struct predecode_re *rawr)
         .fields.enable_pmc = true,
     };
 
-    __wrmsrl(IA32_PERFEVTSEL0 + pmc_no, evt.val);
+    __wrmsrl(evtsel_msr, evt.val);
     enable_pmc(pmc_no);
 
     /* get base reads of the event counter */
@@ -244,8 +288,6 @@ int __do_analysis(struct predecode_re *rawr)
     avg2 /= ARRAY_SIZE(totals)/2;
     total_avg /= ARRAY_SIZE(totals);
 
-    rawr->analysis.base.first_iter = totals[0];
-    rawr->analysis.base.second_iter = totals[1];
     rawr->analysis.base.avg1 = avg1;
     rawr->analysis.base.avg2 = avg2;
     rawr->analysis.base.total_avg = total_avg;
@@ -253,8 +295,6 @@ int __do_analysis(struct predecode_re *rawr)
     meow(KERN_DEBUG, "--- metric: %s ---\n", rawr->params.event.event_name);
     
     meow(KERN_DEBUG, "base event counts:");
-    meow(KERN_DEBUG, "first iter: %llu: second iter: %llu", 
-         totals[0], totals[1]);
     meow(KERN_DEBUG, "avg1: %llu avg2: %llu total avg: %llu",
          avg1, avg2, total_avg);
 
@@ -267,7 +307,7 @@ int __do_analysis(struct predecode_re *rawr)
     /* disable and zero the pmc, were done now */
     disable_pmc(pmc_no);
     __wrmsrl(pmc_msr, 0);
-    __wrmsrl(IA32_PERFEVTSEL0, 0);
+    __wrmsrl(evtsel_msr, 0);
 
     return ret;
 }

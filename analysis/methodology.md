@@ -6,6 +6,5 @@
 
 - Driver was ran on linux kernel v6.1.0
 
-- Source code can be found on this repo either within the current 
-
-- Source code of the driver or by scrolling through the commit history
+- Source code can be found in the src directory, and you can follow
+  each stage of the analysis by going through the commit history

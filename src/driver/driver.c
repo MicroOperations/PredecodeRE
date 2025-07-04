@@ -1,7 +1,8 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 
-#include "lib/include/sys.h"
+#include "lib/include/core.h"
+#include "lib/include/ioctl.h"
 
 MODULE_AUTHOR("MicroOperations");
 MODULE_DESCRIPTION("Driver for our predecode cache reversing");
@@ -26,20 +27,19 @@ MODULE_PARM_DESC(pmc_event_no,
    and lemme pet u, lets cuddle, ^~_~^ purrrr
    purrrr meow meow meow meow mrrrrooooowwww */
 
-#define SYSFS_DIR_NAME "predecode_re"
+#define DEVICE_NAME "predecode_re"
+#define CLASS_NAME "predecode_re_class"
+#define CHARDEV_NAME "predecode_re"
 
 struct predecode_re rawr = {
 
     .params = {},
+    .func_ptrs = {},
     .analysis = {},
-
-    .sysfs = {
-        .attr = &predecode_re_attr,
-        .kobj_ref = NULL,
-        .sysfs_setup = false
+    .ioctl = {
+        .chardev = NULL,
+        .file_ops = &predecode_re_ops,
     },
-
-    .lock = __MUTEX_INITIALIZER(rawr.lock),
 };
 
 struct pmc_event pmc_events[] = {
@@ -77,22 +77,56 @@ static int __init driver_entry(void)
 
     meow(KERN_DEBUG, "analysis successful");
  
-    /* setup the sysfs driver */
-    struct kobject *ref = kobject_create_and_add(SYSFS_DIR_NAME, kernel_kobj);
-    if (!ref) {
-        meow(KERN_ERR, "failed to create and add kobject");
-        return -EFAULT;
+    /* setup the ioctl driver */
+    char *cachemem = kzalloc(PRED_CACHE_SIZE, GFP_KERNEL);
+    if (!cachemem) {
+        meow(KERN_ERR, "couldnt alloc cachemem");
+        return -ENOMEM;
     }
 
-    if (sysfs_create_file(ref, &rawr.sysfs.attr->attr)) {
-        meow(KERN_ERR, "failed to create sysfs file");
-        kobject_put(ref);
-        return -EFAULT;
+    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) 
+        memcpy(cachemem + (i * PRED_BLOCK_SIZE), benchmark_routine1, 64);
+
+    rawr.func_ptrs.set_mem_x((unsigned long)cachemem, PRED_CACHE_SIZE/PAGE_SIZE);
+
+    rawr.ioctl.pmc_msr = (fw_a_pmc_supported(rawr.params.pmc_no) ? 
+                              IA32_A_PMC0 : IA32_PMC0) + rawr.params.pmc_no;
+
+    rawr.ioctl.core = smp_processor_id();
+
+    disable_pmc(rawr.params.pmc_no);
+    __wrmsrl(rawr.ioctl.pmc_msr, 0);
+
+    ia32_perfevtsel_t evt = {
+        .fields.os = true,
+        .fields.usr = true,
+        .fields.umask = rawr.params.event.umask,
+        .fields.evtsel = rawr.params.event.evtsel,
+        .fields.enable_pmc = true,
+    };
+
+    __wrmsrl(IA32_PERFEVTSEL0 + rawr.params.pmc_no, evt.val);
+    enable_pmc(rawr.params.pmc_no);
+    toggle_user_rdpmc(true);
+
+    struct chardev *chardev = alloc_chardev(DEVICE_NAME, rawr.ioctl.file_ops,
+                                            CLASS_NAME, NULL, 
+                                            &rawr, CHARDEV_NAME);
+
+    if (IS_ERR(chardev)) {
+        meow(KERN_ERR, "failed to setup chardev");
+
+        disable_pmc(rawr.params.pmc_no);
+        __wrmsrl(rawr.ioctl.pmc_msr, 0);
+        __wrmsrl(IA32_PERFEVTSEL0 + rawr.params.pmc_no, 0);
+        toggle_user_rdpmc(false);
+        
+        kfree(cachemem);
+        return PTR_ERR(chardev);
     }
 
-    /* driver setup */
-    rawr.sysfs.kobj_ref = ref;
-    rawr.sysfs.sysfs_setup = true;
+    rawr.ioctl.chardev = chardev;
+    rawr.ioctl.cachemem = cachemem;
    
     meow(KERN_DEBUG, "driver setup successfully");
     return 0;
@@ -101,16 +135,14 @@ static int __init driver_entry(void)
 static void __exit driver_exit(void)
 {
     /* clean shit up usual biz */
+    free_chardev(rawr.ioctl.chardev);    
 
-    mutex_lock(&rawr.lock);
+    disable_pmc(rawr.params.pmc_no);
+    __wrmsrl(rawr.ioctl.pmc_msr, 0);
+    __wrmsrl(IA32_PERFEVTSEL0 + pmc_no, 0);
+    toggle_user_rdpmc(false);
 
-    if (rawr.sysfs.sysfs_setup)
-        sysfs_remove_file(rawr.sysfs.kobj_ref, &rawr.sysfs.attr->attr);
-
-    if (rawr.sysfs.kobj_ref) 
-        kobject_put(rawr.sysfs.kobj_ref);
-    
-    mutex_unlock(&rawr.lock);
+    kfree(rawr.ioctl.cachemem);
 
     meow(KERN_DEBUG, "driver unloaded");
 }

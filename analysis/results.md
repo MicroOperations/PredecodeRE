@@ -19,9 +19,9 @@
 
 **Coherency:**
 
-- Cache evictions/flushes usually dont cause predecode cache evictions/flushes
+- Cache evictions usually dont cause predecode cache evictions
 
-- Tlb evictions/flushes usually dont cause predecode cache evictions/flushes
+- Tlb evictions usually dont cause predecode cache evictions
 
 - Disabling caching in cr0 control reg disables predecode cache
 

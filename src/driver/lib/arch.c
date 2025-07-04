@@ -125,3 +125,12 @@ inline void zero_enabled_pmc(u32 pmc_msr, u32 pmc_no)
     __wrmsrl(pmc_msr, 0);
     enable_pmc(pmc_no);
 }
+
+inline void toggle_user_rdpmc(bool on)
+{
+    cr4_t cr4 = {0};
+    __asm__ __volatile__ ("mov %%cr4, %0;":"=r"(cr4.val));
+
+    cr4.fields.pce = on;
+    __asm__ __volatile__ ("mov %0, %%cr4;"::"r"(cr4.val));
+}
