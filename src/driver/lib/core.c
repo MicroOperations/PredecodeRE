@@ -144,11 +144,14 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
 
     /* shared pred cache re (2 core intel celeron n4020)*/
     u32 cur = smp_processor_id();
+    meow(KERN_DEBUG, "cpu to skip %u",cur);
     u32 cpu;
     u64 eviction_count = 0;
     for_each_online_cpu(cpu) {
-        if (cpu == cur)
+        if (cpu == cur) {
+            meow(KERN_DEBUG, "skipping %u", cpu);
             continue;
+        }
 
         for (u32 i = 0; i <PRED_NO_BLOCKS; i++) {
 
