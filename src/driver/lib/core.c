@@ -142,26 +142,6 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
         .pmc_no = pmc_no,
     };
 
-    u64 eviction_count = 0;
-    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
-
-            u64 count = 0;
-            char *cacheline = predecode_cache1 + (i * PRED_BLOCK_SIZE);
-            zero_enabled_pmc(pmc_msr, pmc_no);
-
-            __asm__ __volatile__ (
-                "movl %[pmc_no], %%edi;"
-                "call *%[func];"
-                :"=a"(count)
-                :[func]"r"(cacheline), 
-                 [pmc_no]"r"(pmc_no)
-                :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
-
-        if (count > 0)
-            eviction_count++;
-    }
-    meow(KERN_DEBUG, "shared cache evictions: %llu", eviction_count);
-
     /* reverse engineer the predecode cache on the meow meow core rawrrr */
     int ret = stop_machine((cpu_stop_fn_t)__do_reverse_pred_cache, &arg, 
                            cpumask_of(smp_processor_id()));

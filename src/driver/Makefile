@@ -2,8 +2,7 @@ KERNEL_SRC := /lib/modules/$(shell uname -r)/build
 SRC_DIR := .
 
 LIB_DIR := lib
-OBJ_FILES := $(LIB_DIR)/arch.o $(LIB_DIR)/utils.o $(LIB_DIR)/ioctl.o \
-			$(LIB_DIR)/core.o
+OBJ_FILES := $(LIB_DIR)/arch.o $(LIB_DIR)/utils.o $(LIB_DIR)/core.o
 
 SRC_OBJ := driver.o
 ALL_OBJS := $(SRC_OBJ) $(OBJ_FILES)

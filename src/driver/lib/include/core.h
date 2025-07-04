@@ -47,15 +47,6 @@ struct predecode_re
 
         u64 eviction_count;
     } analysis;
-
-    struct 
-    {
-        struct chardev *chardev;
-        struct file_operations *file_ops;
-        char *cachemem;
-        u32 core;
-        u32 pmc_msr;
-    } ioctl;
 };
 
 struct reverse_pred_cache
