@@ -26,10 +26,6 @@ MODULE_PARM_DESC(pmc_event_no,
    and lemme pet u, lets cuddle, ^~_~^ purrrr
    purrrr meow meow meow meow mrrrrooooowwww */
 
-#define DEVICE_NAME "predecode_re"
-#define CLASS_NAME "predecode_re_class"
-#define CHARDEV_NAME "predecode_re"
-
 struct predecode_re rawr = {};
 
 struct pmc_event pmc_events[] = {
