@@ -25,4 +25,8 @@
 
 - Disabling caching in cr0 control reg disables predecode cache
 
-- The predecode cache isnt coherent with the l1i cache nor the itlb
+- The predecode cache isn't coherent with the l1i cache nor the itlb
+
+**Predecode cache organisation**
+
+- The predecode cache is not shared between physical cores
