@@ -59,15 +59,13 @@ static int __init driver_entry(void)
     rawr.params.event = pmc_events[pmc_event_no];
 
     /* do the frickin analysis shit */
-    int err = __analysis(&rawr);
-    if (err < 0) {
+    int ret = __analysis(&rawr);
+    if (ret < 0) 
         meow(KERN_ERR, "analysis failed");
-        return err;
-    }
+    else
+        meow(KERN_DEBUG, "analysis successful");
 
-    meow(KERN_DEBUG, "analysis successful");
-   
-    return 0;
+    return ret;
 }
 
 static void __exit driver_exit(void)

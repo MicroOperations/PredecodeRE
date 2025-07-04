@@ -1,3 +1,2 @@
-- check if predecode cache shared between cores
-- check if predecode cache flushed on priv boundary
 - re its layout, lookup algorithm, eviction policies
+- covert channel

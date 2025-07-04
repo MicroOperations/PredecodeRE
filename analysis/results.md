@@ -21,7 +21,8 @@
 
 - Cache evictions usually dont cause predecode cache evictions
 
-- Tlb evictions usually dont cause predecode cache evictions
+- Tlb evictions usually dont cause predecode cache evictions, 
+  however on very few occasions they can
 
 - Disabling caching in cr0 control reg disables predecode cache
 
@@ -31,3 +32,5 @@
 
 - The predecode cache was found to be shared between both physical cores on 
   the Intel celeron n4020
+
+**Covert channel**

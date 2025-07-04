@@ -5,9 +5,10 @@
 * formatted this in intel syntax so
   i dont get yelled at by the skids
 
+// returns event count for relevant pmc for 0x66 routine
 u64 benchmark_routine1(u32 pmc_no);
 
-nop dword ptr [rax+rax*1+0x0]
+nop DWORD PTR [rax+rax*1+0x0]
 nop
 nop
 mov ecx, edi
@@ -20,7 +21,7 @@ mov eax, ecx
 add ax, 4
 sub ax, 2
 sub ax, 2
-movzx ecx, ax
+movzx ecx,ax
 rdpmc
 mov cr3, r8
 shl rdi, 32
@@ -28,9 +29,34 @@ shl rdx, 32
 or rsi, rdi
 or rax, rdx
 sub rax, rsi
-ret
+ret 
 
-rax = count
+// returns event count for the relevant pmc for 0x67 routine
+u64 benchmark_routine2(u32 pmc_no);
+
+nop DWORD PTR [rax+rax*1+0x0]
+nop
+nop
+mov ecx, edi
+mov r8, cr3
+mov cr3, r8
+rdpmc
+mov esi, eax
+mov edi, edx
+mov eax, ecx
+nop DWORD PTR [eax]
+nop DWORD PTR [eax]
+nop DWORD PTR [eax]
+movzx ecx,ax
+rdpmc
+mov cr3, r8
+shl rdi, 32
+shl rdx, 32
+or rsi, rdi
+or rax, rdx
+sub rax, rsi
+ret 
+
 */
 u8 benchmark_routine1[] = 
 {
@@ -43,6 +69,18 @@ u8 benchmark_routine1[] =
     0xE7, 0x20, 0x48, 0xC1, 0xE2, 0x20, 0x48, 0x09, 
     0xFE, 0x48, 0x09, 0xD0, 0x48, 0x29, 0xF0, 0xC3 
 };
+
+u8 benchmark_routine2[] = 
+{ 
+    0x0F, 0x1F, 0x44, 0x00, 0x00, 0x90, 0x90, 0x89, 
+    0xF9, 0x41, 0x0F, 0x20, 0xD8, 0x41, 0x0F, 0x22, 
+    0xD8, 0x0F, 0x33, 0x89, 0xC6, 0x89, 0xD7, 0x89, 
+    0xC8, 0x67, 0x0F, 0x1F, 0x00, 0x67, 0x0F, 0x1F, 
+    0x00, 0x67, 0x0F, 0x1F, 0x00, 0x0F, 0xB7, 0xC8, 
+    0x0F, 0x33, 0x41, 0x0F, 0x22, 0xD8, 0x48, 0xC1, 
+    0xE7, 0x20, 0x48, 0xC1, 0xE2, 0x20, 0x48, 0x09, 
+    0xFE, 0x48, 0x09, 0xD0, 0x48, 0x29, 0xF0, 0xC3  
+}; 
 
 int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
 {
@@ -77,13 +115,10 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
     }
 
-    //__asm__ __volatile__ ("wbinvd");
-    __asm__ __volatile__ ("invlpg (%0)"::"r"(cache1));
-
     for (u32 i = 0; i < no_blocks; i++) {
 
         u64 count = 0;
-        char *cacheline = cache1 + (i * block_size);
+        char *cacheline = cache2 + (i * block_size);
         zero_enabled_pmc(pmc_msr, pmc_no);
 
         __asm__ __volatile__ (
@@ -94,7 +129,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
              [pmc_no]"r"(pmc_no)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
 
-        if (count > 0 && i <= (4096/64))
+        if (count > 0)
             eviction_count++;
     }
 
@@ -124,6 +159,11 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     }
 
     memcpy(predecode_cache2, predecode_cache1, PRED_CACHE_SIZE);
+
+    //for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
+      //  memcpy(predecode_cache2 + (i * PRED_BLOCK_SIZE), benchmark_routine2,
+        //       sizeof(benchmark_routine2));
+    //}
 
     /* linux kernel will set xd in the pte of the mapped pages, so we
        unset this because we arent silly billies */
