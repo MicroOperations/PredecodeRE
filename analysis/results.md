@@ -28,3 +28,6 @@
 - The predecode cache isn't coherent with the l1i cache nor the itlb
 
 **Predecode cache organisation**
+
+- The predecode cache was found to be shared between both physical cores on 
+  the Intel celeron n4020
