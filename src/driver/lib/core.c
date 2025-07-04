@@ -297,9 +297,10 @@ int __do_analysis(struct predecode_re *rawr)
 
     /* reverse engineer the predecode cache */
     int ret = __reverse_pred_cache(rawr, pmc_msr, pmc_no);
-
-    meow(KERN_DEBUG, "guesstimated eviction count: %llu", 
-         rawr->analysis.eviction_count);
+    if (ret == 0) {
+        meow(KERN_DEBUG, "guesstimated eviction count: %llu", 
+             rawr->analysis.eviction_count);
+    }
 
     /* disable and zero the pmc, were done now */
     disable_pmc(pmc_no);
