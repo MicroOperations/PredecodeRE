@@ -117,8 +117,23 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
 
     for (u32 i = 0; i < no_blocks; i++) {
 
-        u64 count = 0;
         char *cacheline = cache2 + (i * block_size);
+        u64 count = 0;
+        zero_enabled_pmc(pmc_msr, pmc_no);
+        
+        __asm__ __volatile__ (
+            "movl %[pmc_no], %%edi;"
+            "call *%[func];"
+            :"=a"(count)
+            :[func]"r"(cacheline), 
+             [pmc_no]"r"(pmc_no)
+            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+    }
+
+    for (u32 i = 0; i < no_blocks; i++) {
+
+        u64 count = 0;
+        char *cacheline = cache1 + (i * block_size);
         zero_enabled_pmc(pmc_msr, pmc_no);
 
         __asm__ __volatile__ (
