@@ -38,13 +38,6 @@ struct predecode_re
 
     struct
     {      
-        struct 
-        {   
-            u64 avg1;
-            u64 avg2;
-            u64 total_avg;
-        } base;
-
         u64 eviction_count;
     } analysis;
 };
@@ -55,9 +48,6 @@ struct reverse_pred_cache
 
     char *predecode_cache1;
     char *predecode_cache2;
-
-    u32 no_blocks;
-    size_t block_size;
 
     u32 pmc_msr;
     u32 pmc_no;

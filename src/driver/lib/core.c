@@ -78,121 +78,42 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
     char *cache1 = arg->predecode_cache1;
     char *cache2 = arg->predecode_cache2;
 
-    u32 no_blocks = arg->no_blocks;
-    size_t block_size = arg->block_size;
-
     u32 pmc_msr = arg->pmc_msr;
     u32 pmc_no = arg->pmc_no;
 
+    u64 eviction_count = 0;
+
     /* re whatever we need to re however we need */
 
-    u64 initialc1 = 0;
-    for (u32 i = 0; i < no_blocks; i++) {
-        char *cacheline = cache1 + (i * block_size);
 
-        u64 count = 0;
-        zero_enabled_pmc(pmc_msr, pmc_no);
-        __asm__ __volatile__ (
-            "call *%[func];"
-            "movl %[pmc_no], %%ecx;"
-            "rdpmc;"
-            "shlq $32, %%rdx;"
-            "orq %%rdx, %%rax;"
-            :"=a"(count)
-            :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
-            :"%rdx", "%rcx"
-        );
+    u64 count1 = 0;
+    zero_enabled_pmc(pmc_msr, pmc_no);
+    __asm__ __volatile__ (
+        "call %[func];"
+        "movl %[pmc_no], %%ecx;"
+        "rdpmc;"
+        "shlq $32, %%rdx;"
+        "orq %%rdx, %%rax;"
+        :"=a"(count1)
+        :[func]"r"(cache1), [pmc_no]"r"(pmc_no)
+        :"%rdx", "%ecx"
+    );
 
-        if (count > 0)
-            initialc1++;
-    }
+    u64 count2 = 0;
+    zero_enabled_pmc(pmc_msr, pmc_no);
+    __asm__ __volatile__ (
+        "call %[func];"
+        "movl %[pmc_no], %%ecx;"
+        "rdpmc;"
+        "shlq $32, %%rdx;"
+        "orq %%rdx, %%rax;"
+        :"=a"(count2)
+        :[func]"r"(cache2), [pmc_no]"r"(pmc_no)
+        :"%rdx", "%ecx"
+    );
 
-    u64 new_c1 = 0;
-    for (u32 i = 0; i < no_blocks; i++) {
-        char *cacheline = cache1 + (i * block_size);
-
-        u64 count = 0;
-        zero_enabled_pmc(pmc_msr, pmc_no);
-        __asm__ __volatile__ (
-            "call *%[func];"
-            "movl %[pmc_no], %%ecx;"
-            "rdpmc;"
-            "shlq $32, %%rdx;"
-            "orq %%rdx, %%rax;"
-            :"=a"(count)
-            :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
-            :"%rdx", "%rcx"
-        );
-
-        if (count > 0)
-            new_c1++;
-    }
-
-    u64 initialc2 = 0;
-    for (u32 i = 0; i < no_blocks; i++) {
-        char *cacheline = cache2 + (i * block_size);
-
-        u64 count = 0;
-        zero_enabled_pmc(pmc_msr, pmc_no);
-        __asm__ __volatile__ (
-            "call *%[func];"
-            "movl %[pmc_no], %%ecx;"
-            "rdpmc;"
-            "shlq $32, %%rdx;"
-            "orq %%rdx, %%rax;"
-            :"=a"(count)
-            :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
-            :"%rdx", "%rcx"
-        );
-
-        if (count > 0)
-            initialc2++;
-    }
-
-    u64 new_c2 = 0;
-    for (u32 i = 0; i < no_blocks; i++) {
-        char *cacheline = cache2 + (i * block_size);
-
-        u64 count = 0;
-        zero_enabled_pmc(pmc_msr, pmc_no);
-        __asm__ __volatile__ (
-            "call *%[func];"
-            "movl %[pmc_no], %%ecx;"
-            "rdpmc;"
-            "shlq $32, %%rdx;"
-            "orq %%rdx, %%rax;"
-            :"=a"(count)
-            :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
-            :"%rdx", "%rcx"
-        );
-
-        if (count > 0)
-            new_c2++;
-    }
-
-    u64 eviction_count = 0;
-    for (u32 i = 0; i < no_blocks; i++) {
-        char *cacheline = cache1 + (i * block_size);
-        
-        u64 count = 0;
-        zero_enabled_pmc(pmc_msr, pmc_no);
-        __asm__ __volatile__ (
-            "call *%[func];"
-            "movl %[pmc_no], %%ecx;"
-            "rdpmc;"
-            "shlq $32, %%rdx;"
-            "orq %%rdx, %%rax;"
-            :"=a"(count)
-            :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
-            :"%rdx", "%rcx"
-        );
-
-        if (count > 0)
-            eviction_count++;
-    }
-
-    meow(KERN_DEBUG, "c1: %llu c2: %llu, newc1: %llu newc2: %llu", initialc1, initialc2, new_c1, new_c2);
-    
+    /* pass back results */
+   
     arg->rawr->analysis.eviction_count = eviction_count;
     return 0;
 }
@@ -202,7 +123,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     
     /* map mempool for physically contingous memory regions large enough to 
        fill the predecode cache */
-    size_t mempool_size = PRED_CACHE_SIZE * 2;
+    size_t mempool_size = (PRED_CACHE_SIZE * 4);
     char *mempool = kzalloc(mempool_size, GFP_KERNEL);
     if (!mempool) {
         meow(KERN_ERR, "couldnt alloc mempool");
@@ -210,17 +131,29 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     }
 
     char *predecode_cache1 = mempool;
-    char *predecode_cache2 = predecode_cache1 + PRED_CACHE_SIZE;
+    char *predecode_cache2 = predecode_cache1 + (PRED_CACHE_SIZE*2) + 1;
 
-    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
-        memcpy(predecode_cache1 + (i * PRED_BLOCK_SIZE), 
-               lcp_0x66, sizeof(lcp_0x66));
+    u8 instr_0x66[] = {0x66, 0x83, 0xc0, 0x01}; // add ax, 1
+    u8 instr_0x67[] = {0x67, 0x0f, 0x1f, 0x00}; // nop dword ptr [eax]
+
+    for (u32 i = 0; i < PRED_CACHE_SIZE/4; i++) {
+        u32 base = i*4;
+        predecode_cache1[base] = instr_0x66[0];
+        predecode_cache1[base+1] = instr_0x66[1];
+        predecode_cache1[base+2] = instr_0x66[2];
+        predecode_cache1[base+3] = instr_0x66[3];
     }
 
-    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
-        memcpy(predecode_cache2 + (i * PRED_BLOCK_SIZE),
-               lcp_0x67, sizeof(lcp_0x67));
+    for (u32 i = 0; i < PRED_CACHE_SIZE/4; i++) {
+        u32 base = i*4;
+        predecode_cache2[base] = instr_0x67[0];
+        predecode_cache2[base+1] = instr_0x67[1];
+        predecode_cache2[base+2] = instr_0x67[2];
+        predecode_cache2[base+3] = instr_0x67[3];
     }
+
+    *(predecode_cache1 + PRED_CACHE_SIZE) = 0xc3;
+    *(predecode_cache2 + PRED_CACHE_SIZE) = 0xc3;
 
     /* linux kernel will set xd in the pte of the mapped pages, so we
        unset this because we arent silly billies */
@@ -231,9 +164,6 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
 
         .predecode_cache1 = predecode_cache1,
         .predecode_cache2 = predecode_cache2,
-
-        .no_blocks = PRED_NO_BLOCKS,
-        .block_size = PRED_BLOCK_SIZE,
 
         .pmc_msr = pmc_msr,
         .pmc_no = pmc_no,
@@ -267,90 +197,6 @@ int __do_analysis(struct predecode_re *rawr)
 
     __wrmsrl(evtsel_msr, evt.val);
     enable_pmc(pmc_no);
-
-    /* get base reads of the event counter */
-    u64 totals[128] = {0};
-    for (u32 i = 0; i < ARRAY_SIZE(totals); i++) {
-
-        zero_enabled_pmc(pmc_msr, pmc_no);
-        __asm__ __volatile__(
-
-            /* setup ecx with the pmc */
-            "movl %[pmc_no], %%ecx;"
-
-            /* setup r8 with cr3 since reads from cr3
-               arent serialised we will have to use
-               writes */
-            "movq %%cr3, %%r8;"
-
-            /* 'serialise' just this code block */
-            "movq %%r8, %%cr3;"
-            "rdpmc;"
-
-            /* time constraints here, want to get
-               this block executed asap so just
-               save the low and high val for later,
-               will be quick due to move elimination
-               anyway */
-
-            "movl %%eax, %%esi;"
-            "movl %%edx, %%edi;"
-
-            /* setup eax with the pmc so we can setup 
-               ecx to be dependant on rax */
-            "movl %%ecx, %%eax;"
-
-            /* measured instructions (lcp heavy) */
-            "addw $4, %%ax;"
-            "subw $2, %%ax;"
-            "subw $2, %%ax;"
-
-            /* make the rdpmc stall for dependancy on rax */
-            "movzx %%ax, %%ecx;"
-            "rdpmc;"
-            "movq %%r8, %%cr3;"
-
-            /* count1 into rsi & count2 into rax */
-            "shlq $32, %%rdi;"
-            "shlq $32, %%rdx;"
-            "orq %%rdi, %%rsi;"
-            "orq %%rdx, %%rax;"
-
-            /* get the difference of count 1 and 2 */
-            "subq %%rsi, %%rax;"
-            : "=a"(totals[i])
-            : [pmc_no]"r"(pmc_no)
-            : "%rcx", "%rdx", "%rsi", "%rdi", "%r8");
-    }
-
-    /* get averages and store back the results */
-    u64 avg1 = 0;
-    u64 avg2 = 0;
-    u64 total_avg = 0;
-
-    for (u32 i = 0; i < ARRAY_SIZE(totals)/2; i++) {
-        avg1 += totals[i];
-        total_avg += totals[i];
-    }
-
-    for (u32 i = ARRAY_SIZE(totals)/2; i < ARRAY_SIZE(totals); i++) {
-        avg2 += totals[i];
-        total_avg += totals[i];
-    }
-    
-    avg1 /= ARRAY_SIZE(totals)/2;
-    avg2 /= ARRAY_SIZE(totals)/2;
-    total_avg /= ARRAY_SIZE(totals);
-
-    rawr->analysis.base.avg1 = avg1;
-    rawr->analysis.base.avg2 = avg2;
-    rawr->analysis.base.total_avg = total_avg;
-
-    meow(KERN_DEBUG, "--- metric: %s ---\n", rawr->params.event.event_name);
-    
-    meow(KERN_DEBUG, "base event counts:");
-    meow(KERN_DEBUG, "avg1: %llu avg2: %llu total avg: %llu",
-         avg1, avg2, total_avg);
 
     /* reverse engineer the predecode cache */
     int ret = __reverse_pred_cache(rawr, pmc_msr, pmc_no);
