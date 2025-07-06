@@ -91,7 +91,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
     }
 
-    for (u32 i = 0; i < no_blocks; i++) {
+    for (u32 i = 0; i < no_blocks*4; i++) {
 
         char *cacheline = cache2 + (i * block_size);
         u64 count = 0;
@@ -133,7 +133,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     
     /* map mempool for physically contingous memory regions large enough to 
        fill the predecode cache */
-    size_t mempool_size = PRED_CACHE_SIZE * 2;
+    size_t mempool_size = PRED_CACHE_SIZE * 5;
     char *mempool = kzalloc(mempool_size, GFP_KERNEL);
     if (!mempool) {
         meow(KERN_ERR, "couldnt alloc mempool");
@@ -149,7 +149,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
                sizeof(benchmark_routine1));
     }
 
-    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
+    for (u32 i = 0; i < PRED_NO_BLOCKS*4; i++) {
         memcpy(predecode_cache2 + (i * PRED_BLOCK_SIZE), benchmark_routine2,
                sizeof(benchmark_routine2));
     }
