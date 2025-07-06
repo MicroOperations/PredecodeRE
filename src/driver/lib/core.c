@@ -102,6 +102,9 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
             :"%rdx", "%rcx"
         );
+
+        if (count > 0)
+            initialc1++;
     }
 
     u64 initialc2 = 0;
@@ -120,6 +123,30 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
             :"%rdx", "%rcx"
         );
+
+        if (count > 0)
+            initialc2++;
+    }
+
+    u64 new_c2 = 0;
+    for (u32 i = 0; i < no_blocks; i++) {
+        char *cacheline = cache2 + (i * block_size);
+
+        u64 count = 0;
+        zero_enabled_pmc(pmc_msr, pmc_no);
+        __asm__ __volatile__ (
+            "call *%[func];"
+            "movl %[pmc_no], %%ecx;"
+            "rdpmc;"
+            "shlq $32, %%rdx;"
+            "orq %%rdx, %%rax;"
+            :"=a"(count)
+            :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
+            :"%rdx", "%rcx"
+        );
+
+        if (count > 0)
+            new_c2++;
     }
 
     u64 eviction_count = 0;
@@ -142,6 +169,8 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
         if (count > 0)
             eviction_count++;
     }
+
+    meow(KERN_DEBUG, "c1: %llu c2: %llu, newc2: %llu", initialc1, initialc2, new_c2);
     
     arg->rawr->analysis.eviction_count = eviction_count;
     return 0;
