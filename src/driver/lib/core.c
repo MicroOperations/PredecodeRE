@@ -46,7 +46,19 @@ u8 benchmark_routine1[] =
     0xFE, 0x48, 0x09, 0xD0, 0x48, 0x29, 0xF0, 0xC3 
 };
 
-u8 benchmark_routine2[] = 
+u8 lcp_0x66[] = 
+{
+    0x66, 0x31, 0xC0, 0x66, 0x31, 0xC0, 0x66, 0x31, 
+    0xC0, 0x66, 0x31, 0xC0, 0x66, 0x31, 0xC0, 0x66, 
+    0x31, 0xC0, 0x66, 0x31, 0xC0, 0x66, 0x31, 0xC0, 
+    0x66, 0x31, 0xC0, 0x66, 0x31, 0xC0, 0x66, 0x31, 
+    0xC0, 0x66, 0x31, 0xC0, 0x66, 0x31, 0xC0, 0x66, 
+    0x31, 0xC0, 0x66, 0x31, 0xC0, 0x66, 0x31, 0xC0, 
+    0x66, 0x31, 0xC0, 0x66, 0x31, 0xC0, 0x66, 0x31, 
+    0xC0, 0x66, 0x31, 0xC0, 0x66, 0x31, 0xC0, 0xC3 
+};
+
+u8 lcp_0x67[] = 
 { 
     0x67, 0x0F, 0x1F, 0x00, 0x67, 0x0F, 0x1F, 0x04, 
     0x00, 0x67, 0x0F, 0x1F, 0x00, 0x67, 0x0F, 0x1F, 
@@ -54,7 +66,7 @@ u8 benchmark_routine2[] =
     0x1F, 0x04, 0x00, 0x67, 0x0F, 0x1F, 0x00, 0x67, 
     0x0F, 0x1F, 0x04, 0x00, 0x67, 0x0F, 0x1F, 0x00, 
     0x67, 0x0F, 0x1F, 0x04, 0x00, 0x67, 0x0F, 0x1F, 
-    0x00, 0x67, 0x0F, 0x1F, 0x04, 0x00, 0x67, 0x0F,
+    0x00, 0x67, 0x0F, 0x1F, 0x04, 0x00, 0x67, 0x0F, 
     0x1F, 0x00, 0x67, 0x0F, 0x1F, 0x04, 0x00, 0xC3 
 };
 
@@ -74,56 +86,63 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
 
     /* re whatever we need to re however we need */
 
-    u64 eviction_count = 0;
-    u64 initial_counts[no_blocks];
-
+    u64 initialc1 = 0;
     for (u32 i = 0; i < no_blocks; i++) {
-
         char *cacheline = cache1 + (i * block_size);
+
+        u64 count = 0;
         zero_enabled_pmc(pmc_msr, pmc_no);
-        
         __asm__ __volatile__ (
-            "movl %[pmc_no], %%edi;"
             "call *%[func];"
-            :"=a"(initial_counts[i])
-            :[func]"r"(cacheline), 
-             [pmc_no]"r"(pmc_no)
-            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+            "movl %[pmc_no], %%ecx;"
+            "rdpmc;"
+            "shlq $32, %%rdx;"
+            "orq %%rdx, %%rax;"
+            :"=a"(count)
+            :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
+            :"%rdx", "%rcx"
+        );
     }
 
-    for (u32 i = 0; i < no_blocks*4; i++) {
-
+    u64 initialc2 = 0;
+    /*for (u32 i = 0; i < no_blocks; i++) {
         char *cacheline = cache2 + (i * block_size);
+
         u64 count = 0;
         zero_enabled_pmc(pmc_msr, pmc_no);
-        
         __asm__ __volatile__ (
-            "movl %[pmc_no], %%edi;"
             "call *%[func];"
+            "movl %[pmc_no], %%ecx;"
+            "rdpmc;"
+            "shlq $32, %%rdx;"
+            "orq %%rdx, %%rax;"
             :"=a"(count)
-            :[func]"r"(cacheline), 
-             [pmc_no]"r"(pmc_no)
-            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
-    }
+            :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
+            :"%rdx", "%rcx"
+        );
+    }*/
 
+    u64 eviction_count = 0;
     for (u32 i = 0; i < no_blocks; i++) {
-
-        u64 count = 0;
         char *cacheline = cache1 + (i * block_size);
+        
+        u64 count = 0;
         zero_enabled_pmc(pmc_msr, pmc_no);
-
         __asm__ __volatile__ (
-            "movl %[pmc_no], %%edi;"
             "call *%[func];"
+            "movl %[pmc_no], %%ecx;"
+            "rdpmc;"
+            "shlq $32, %%rdx;"
+            "orq %%rdx, %%rax;"
             :"=a"(count)
-            :[func]"r"(cacheline), 
-             [pmc_no]"r"(pmc_no)
-            :"%rcx", "%rdx", "%rsi", "%rdi", "%r8");
+            :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
+            :"%rdx", "%rcx"
+        );
 
         if (count > 0)
             eviction_count++;
     }
-
+    
     arg->rawr->analysis.eviction_count = eviction_count;
     return 0;
 }
@@ -133,7 +152,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     
     /* map mempool for physically contingous memory regions large enough to 
        fill the predecode cache */
-    size_t mempool_size = PRED_CACHE_SIZE * 5;
+    size_t mempool_size = PRED_CACHE_SIZE * 2;
     char *mempool = kzalloc(mempool_size, GFP_KERNEL);
     if (!mempool) {
         meow(KERN_ERR, "couldnt alloc mempool");
@@ -143,15 +162,14 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     char *predecode_cache1 = mempool;
     char *predecode_cache2 = predecode_cache1 + PRED_CACHE_SIZE;
 
-    /* copy in the benchmark routine to the allocated region */
     for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
-        memcpy(predecode_cache1 + (i * PRED_BLOCK_SIZE), benchmark_routine1,
-               sizeof(benchmark_routine1));
+        memcpy(predecode_cache1 + (i * PRED_BLOCK_SIZE), 
+               lcp_0x66, sizeof(lcp_0x66));
     }
 
-    for (u32 i = 0; i < PRED_NO_BLOCKS*4; i++) {
-        memcpy(predecode_cache2 + (i * PRED_BLOCK_SIZE), benchmark_routine2,
-               sizeof(benchmark_routine2));
+    for (u32 i = 0; i < PRED_NO_BLOCKS; i++) {
+        memcpy(predecode_cache2 + (i * PRED_BLOCK_SIZE),
+               lcp_0x67, sizeof(lcp_0x67));
     }
 
     /* linux kernel will set xd in the pte of the mapped pages, so we

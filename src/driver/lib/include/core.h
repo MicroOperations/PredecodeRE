@@ -64,6 +64,8 @@ struct reverse_pred_cache
 };
 
 extern u8 benchmark_routine1[];
+extern u8 lcp_0x66[];
+extern u8 lcp_0x67[];
 
 int __do_reverse_pred_cache(struct reverse_pred_cache *arg);
 int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no);
