@@ -105,7 +105,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
     }
 
     u64 initialc2 = 0;
-    /*for (u32 i = 0; i < no_blocks; i++) {
+    for (u32 i = 0; i < no_blocks; i++) {
         char *cacheline = cache2 + (i * block_size);
 
         u64 count = 0;
@@ -120,7 +120,7 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
             :[func]"r"(cacheline), [pmc_no]"r"(pmc_no)
             :"%rdx", "%rcx"
         );
-    }*/
+    }
 
     u64 eviction_count = 0;
     for (u32 i = 0; i < no_blocks; i++) {
