@@ -46,16 +46,11 @@ struct reverse_pred_cache
 {
     struct predecode_re *rawr;
 
-    char *predecode_cache1;
-    char *predecode_cache2;
-
+    char *predecode_cache;
+    
     u32 pmc_msr;
     u32 pmc_no;
 };
-
-extern u8 benchmark_routine1[];
-extern u8 lcp_0x66[];
-extern u8 lcp_0x67[];
 
 int __do_reverse_pred_cache(struct reverse_pred_cache *arg);
 int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no);

@@ -9,6 +9,8 @@
    
     ^~_~^ meow purrr rawrrr */
 
+#define num_pages(x) ((x + PAGE_SIZE - 1) / PAGE_SIZE)
+
 typedef union
 {
     u64 val;
