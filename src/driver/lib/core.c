@@ -25,6 +25,9 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
         :"%rdx", "%ecx"
     );
 
+    // ehhh btw never fucking do this when in a routine called by stop_machine
+    meow(KERN_DEBUG, "initial %llu", initial_count);
+
     cache[PRED_CACHE_SIZE - 1] = 0xc3;
 
     zero_enabled_pmc(pmc_msr, pmc_no);
@@ -50,7 +53,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     /* map mempool for physically contingous memory regions large enough to 
        fill the predecode cache */
     u64 cache_0x66_size = PRED_CACHE_SIZE;
-    u64 cache_0x67_size = PRED_CACHE_SIZE*64;
+    u64 cache_0x67_size = PRED_CACHE_SIZE;
     
     size_t mempool_size = cache_0x66_size + cache_0x67_size + 1;
     char *mempool = kzalloc(mempool_size, GFP_KERNEL);
@@ -73,10 +76,10 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
 
     for (u32 i = 0; i < cache_0x67_size/4; i++) {
         u32 base = i*4;
-        cache_0x67[base] = 0x67;
-        cache_0x67[base+1] = 0x0f;
-        cache_0x67[base+2] = 0x1f;
-        cache_0x67[base+3] = 0x00;
+        cache_0x67[base] = 0x66;//0x67;
+        cache_0x67[base+1] = 0x83;//0x0f;
+        cache_0x67[base+2] = 0xc0;//0x1f;
+        cache_0x67[base+3] = 0x01;//0x00;
     }
 
     mempool[mempool_size - 1] = 0xc3;
