@@ -48,7 +48,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     /* map mempool for physically contingous memory regions large enough to 
        fill the predecode cache */
     u64 cache_0x66_size = PRED_CACHE_SIZE;
-    u64 cache_0x67_size = PRED_CACHE_SIZE * 2;
+    u64 cache_0x67_size = PRED_CACHE_SIZE * 1;
     
     size_t mempool_size = cache_0x66_size + cache_0x67_size + 1;
     char *mempool = kzalloc(mempool_size, GFP_KERNEL);
@@ -71,10 +71,10 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
 
     for (u32 i = 0; i < cache_0x67_size/4; i++) {
         u32 base = i*4;
-        cache_0x67[base] = 0x67;
-        cache_0x67[base+1] = 0x0f;
-        cache_0x67[base+2] = 0x1f;
-        cache_0x67[base+3] = 0x00;
+        cache_0x67[base] = 0x66;//0x67;
+        cache_0x67[base+1] = 0x83;//0x0f;
+        cache_0x67[base+2] = 0xc0;//0x1f;
+        cache_0x67[base+3] = 0x01;//0x00;
     }
 
     mempool[mempool_size - 1] = 0xc3;
@@ -82,7 +82,6 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     /* linux kernel will set xd in the pte of the mapped pages, so we
        unset this because we arent silly billies */
     rawr->func_ptrs.set_mem_x((unsigned long)mempool, num_pages(mempool_size));
-    rawr->func_ptrs.set_mem_uc((unsigned long)mempool, num_pages(mempool_size));
     
     struct reverse_pred_cache arg = {
         .rawr = rawr,

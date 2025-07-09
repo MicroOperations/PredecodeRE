@@ -24,6 +24,9 @@
 - Tlb evictions usually dont cause predecode cache evictions, 
   however on very few occasions they can
 
+- Setting memory to uncacheable in pte prevents it from being 
+  put into the predecode cache
+
 - Disabling caching in cr0 control reg disables predecode cache
 
 - The predecode cache isn't coherent with the l1i cache nor the itlb
