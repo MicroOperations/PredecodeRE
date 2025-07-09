@@ -50,7 +50,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     /* map mempool for physically contingous memory regions large enough to 
        fill the predecode cache */
     u64 cache_0x66_size = PRED_CACHE_SIZE;
-    u64 cache_0x67_size = PRED_CACHE_SIZE;
+    u64 cache_0x67_size = PRED_CACHE_SIZE*2;
     
     size_t mempool_size = cache_0x66_size + cache_0x67_size + 1;
     char *mempool = kzalloc(mempool_size, GFP_KERNEL);
