@@ -82,6 +82,7 @@ int __reverse_pred_cache(struct predecode_re *rawr, u32 pmc_msr, u32 pmc_no)
     /* linux kernel will set xd in the pte of the mapped pages, so we
        unset this because we arent silly billies */
     rawr->func_ptrs.set_mem_x((unsigned long)mempool, num_pages(mempool_size));
+    rawr->func_ptrs.set_mem_uc((unsigned long)mempool, num_pages(mempool_size));
     
     struct reverse_pred_cache arg = {
         .rawr = rawr,
