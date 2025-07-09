@@ -7,4 +7,5 @@
 - Driver was ran on linux kernel v6.1.0
 
 - Source code can be found in the src directory, and you can follow
-  each stage of the analysis by going through the commit history
+  each stage of the analysis by going through the commit history, cba
+  filling this out just go read sourcecode

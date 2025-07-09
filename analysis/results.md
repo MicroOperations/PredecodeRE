@@ -8,9 +8,9 @@
 
   3. If it does then continue with step 4, otherwise skip to step 6
 
-  4. Conduct predecode cache lookup to gather predecode related metadata, processor
-     predicts this as the predecode related data, I don't know how it finds out 
-     when a misprediction occurs, but it does
+  4. Conduct predecode cache lookup to gather predecode related metadata such as 
+     instruction boundaries and stuff like that, processor predicts this as the predecode 
+     related data, I don't know how it finds out when a misprediction occurs, but it does
 
   5. If misprediction occurs update the predecode cache with the correct instruction 
      predecode related metadata
@@ -31,9 +31,12 @@
 
 - The predecode cache isn't coherent with the l1i cache nor the itlb
 
-**Predecode cache organisation**
-
 - The predecode cache was found to be shared between both physical cores on 
   the Intel celeron n4020
 
 **Covert channel**
+
+- Since we dont exactly know the length of what is being cached, its kinda hard to know how to 
+  cause aliasing within specific parts of the predecode cache to then create a covert channel POC. 
+  However, it should hypothetically be possible to create a covert channel which survives tlb and cache 
+  flushes by leveraging the predecode cache.
