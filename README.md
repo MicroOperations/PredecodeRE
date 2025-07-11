@@ -4,6 +4,12 @@
 
 - Written by: https://github.com/humzak711
 
+# Why?
+
+Because the predecode cache logic is undocumented and I couldn't find anyone else who has 
+reverse engineered it yet, all thats documented in relation to it (in the optimisation
+reference manual v1) is that it's 64kb...
+
 # Index
 
 src/driver - Source code for driver used for reversing
