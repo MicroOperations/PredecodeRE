@@ -1,5 +1,7 @@
 #include "include/core.h"
 
+/* trap house old trap house got mold */
+
 int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
 {
     /* we pass shit via struct coz cant alloc mem here 
@@ -26,6 +28,8 @@ int __do_reverse_pred_cache(struct reverse_pred_cache *arg)
     );
 
     cache[PRED_CACHE_SIZE - 1] = 0xc3;
+
+    /* re-execute da dihh */ 
 
     zero_enabled_pmc(pmc_msr, pmc_no);
     __asm__ __volatile__ (
