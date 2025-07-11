@@ -55,7 +55,7 @@
 
 # Conclusion
 
-The absence of a micro op cache is due to goldmont and goldmont plus being small power optimised 
+The absence of a micro op cache is due to goldmont and goldmont plus being minimal power optimised 
 microarchitectures. This leaves room for optimisations in relation to the fetch + decode stages, with goldmont 
 and goldmont plus, they implemented a predecode cache which allows for caching predecode related data
 (instruction boundaries etc) for instructions with lcp's, which are known to be problematic for predecoders. When 
