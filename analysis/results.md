@@ -56,12 +56,10 @@
 # Conclusion
 
 The absence of a micro op cache is due to goldmont and goldmont plus being power optimised 
-microarchitectures. A micro op cache incurs overhead when there is a switch from fetching directly 
-from the micro op cache to the legacy decoder, therefore increasing power usage. This leaves room for 
-optimisations in relation to the fetch + decode stages, with goldmont and goldmont plus, they implemented 
-a predecode cache which allows for caching predecode related data (instruction boundaries etc) for 
-instructions with lcp's, which are known to be problematic for predecoders. When an instruction 
-with an lcp is being predecoded, the processor looks up its predecode data within the predecode cache.
+microarchitectures. This leaves room for optimisations in relation to the fetch + decode stages, with goldmont 
+and goldmont plus, they implemented a predecode cache which allows for caching predecode related data
+(instruction boundaries etc) for instructions with lcp's, which are known to be problematic for predecoders. When 
+an instruction with an lcp is being predecoded, the processor looks up its predecode data within the predecode cache.
 If there is a miss it'll predecode the instruction and place its predecode data within the predecode cache. 
 If there is a hit, since the predecode cache isn't coherent with the l1i cache nor the itlb, the processor has 
 to figure out the real predecode data due to it potentially being stale, so you could say that the data from the 
