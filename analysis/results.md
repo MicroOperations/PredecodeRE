@@ -60,8 +60,9 @@ and goldmont plus, they implemented a predecode cache which allows for caching p
 (instruction boundaries etc) for instructions with lcp's, which are known to be problematic for predecoders. When 
 an instruction with an lcp is being predecoded, the processor looks up its predecode data within the predecode cache.
 If there is a miss it'll predecode the instruction and place its predecode data within the predecode cache. 
-If there is a hit, since the predecode cache isn't coherent with the l1i cache nor the itlb, the processor has 
-to figure out the real predecode data due to it potentially being stale, so you could say that the data from the 
-predecode cache is used to 'predict' predecode data relating to the instruction for an lcp. If the data is no 
-longer valid, likely due to self modifying code, it'll update the predecode cache with the correct data. after 
-the predecoding stage the instruction is put onto the instruction queue.
+If there is a hit, since the predecode cache isn't coherent with the l1i cache nor the itlb 
+(which I would imagine is to limit complexity and power consumption), the processor has to figure out the real 
+predecode data due to it potentially being stale, so you could say that the data from the predecode cache is used 
+to 'predict' predecode data relating to the instruction for an lcp. If the data is no longer valid, likely due to self 
+modifying code, it'll update the predecode cache with the correct data. after the predecoding stage the instruction is 
+put onto the instruction queue.
