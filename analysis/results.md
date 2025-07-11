@@ -41,7 +41,7 @@
 - The predecode cache was found to be shared between both physical cores on 
   the Intel celeron n4020
 
-**Security**
+**Security:**
 
 - Hypothetically it should be possible to leverage the predecode cache to create an eviction based covert 
   channel that survives tlb and cache flushes, it would be interesting to see someone build off my 
