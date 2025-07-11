@@ -44,9 +44,8 @@
 **Security**
 
 - Hypothetically it should be possible to leverage the predecode cache to create an eviction based covert 
-  channel that survives tlb and cache flushes, from my own tests it is possible to get aliasing going in the 
-  predecode cache which pretty much proves this is possible, it would be interesting to see someone build off my 
-  work here and implement something of the sort (just gimme credit pls thx).
+  channel that survives tlb and cache flushes, it would be interesting to see someone build off my 
+  work here and implement something of the sort.
 
 - The predecode cache could be used as a side channel to leak data however it wouldn't be a very good one 
   whatsoever, it would probably allow you to infer where in memory instructions with lcp's are being executed, 
