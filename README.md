@@ -4,7 +4,7 @@
 
 - Written by: https://github.com/humzak711
 
-# index
+# Index
 
 src/driver - Source code for driver used for reversing
 
