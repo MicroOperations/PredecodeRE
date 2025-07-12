@@ -21,11 +21,6 @@ MODULE_PARM_DESC(pmc_event_no,
 "   2: machine clears\n"
 "   3. unhalted core cycles");
 
-/* ur so pawesome u have a fluffy tail and ur 
-   paws r so fuzzy ur so meow meow, come here
-   and lemme pet u, lets cuddle, ^~_~^ purrrr
-   purrrr meow meow meow meow mrrrrooooowwww */
-
 struct predecode_re rawr = {};
 
 struct pmc_event pmc_events[] = {
@@ -53,7 +48,7 @@ static int __init driver_entry(void)
     rawr.params.pmc_no = pmc_no;
     rawr.params.event = pmc_events[pmc_event_no];
 
-    /* do the frickin analysis shit */
+    /* do the frickin analysis stuff */
     int ret = __analysis(&rawr);
     if (ret < 0) 
         meow(KERN_ERR, "analysis failed");

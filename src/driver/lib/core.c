@@ -151,19 +151,19 @@ int __analysis(struct predecode_re *rawr)
     kallsyms_ln_t kallsyms_ln = (kallsyms_ln_t)kp.addr;
     unregister_kprobe(&kp);
     if (!kallsyms_ln) {
-        meow(KERN_ERR, "couldnt get kallsyms fuck");
+        meow(KERN_ERR, "couldnt get kallsyms frick");
         return -EFAULT;
     }
 
     set_memory_x_t set_mem_x = (set_memory_x_t)kallsyms_ln("set_memory_x");
     if (!set_mem_x) {
-        meow(KERN_ERR, "couldnt get set memory x fuck");
+        meow(KERN_ERR, "couldnt get set memory x frick");
         return -EFAULT;
     }
 
     set_memory_uc_t set_mem_uc = (set_memory_uc_t)kallsyms_ln("set_memory_uc");
     if (!set_mem_uc) {
-        meow(KERN_ERR, "couldnt get set memory uc fuck");
+        meow(KERN_ERR, "couldnt get set memory uc frick");
         return -EFAULT;
     }
 
